@@ -5,89 +5,89 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aide Devoir</title>
 <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f0f5; }
-    .hidden { display: none; }
-    .container { padding: 20px; }
-    button { margin: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
-    .interface { margin-top: 20px; }
-    .list-item { display: flex; align-items: center; margin: 5px 0; background: #fff; padding: 10px; border-radius: 5px; }
-    .list-item span { flex: 1; }
-    .list-item button { margin-left: 5px; }
-    .flashcard, .quiz-question { margin: 10px 0; padding: 20px; background: #fff; border-radius: 10px; text-align: center; cursor: pointer; }
-    .flashcard.flipped { background: #d1ffd1; }
-    input[type="text"] { padding: 5px; font-size: 16px; }
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f5; }
+.hidden { display:none; }
+.container { padding:20px; }
+button { margin:5px; padding:10px 20px; font-size:16px; cursor:pointer; }
+input[type="text"], input[type="number"] { padding:5px; font-size:16px; }
+.list-item, .quiz-question, .flashcard { background:#fff; margin:10px 0; padding:15px; border-radius:10px; display:flex; align-items:center; }
+.list-item span { flex:1; }
+.list-item button { margin-left:5px; }
+.flashcard { justify-content:center; text-align:center; cursor:pointer; transition:0.3s; }
+.flashcard.flipped { background:#d1ffd1; transform: rotateY(180deg); }
+.option { margin:5px 0; }
+.correct { background:#d1ffd1; }
+.wrong { background:#ffd1d1; }
 </style>
 </head>
 <body>
 
+<!-- Interface principale -->
 <div class="container" id="main-interface">
-    <h1>Aide Devoir</h1>
-    <button onclick="showInterface('quiz')">Quiz</button>
-    <button onclick="showInterface('flashcards')">Flashcards</button>
-    <button onclick="showInterface('timer')">Minuteur</button>
-    <button onclick="showInterface('todolist')">Liste</button>
+<h1>Aide Devoir</h1>
+<button onclick="showInterface('quiz')">Quiz</button>
+<button onclick="showInterface('flashcards')">Flashcards</button>
+<button onclick="showInterface('timer')">Minuteur</button>
+<button onclick="showInterface('todolist')">Liste</button>
 </div>
 
 <!-- Quiz Interface -->
 <div class="container hidden" id="quiz-interface">
-    <button onclick="showInterface('main')">← Principal</button>
-    <h2>Choisis une matière</h2>
-    <div id="quiz-subjects"></div>
-    <div id="quiz-actions" class="hidden">
-        <button onclick="createNewQuiz()">Créer un nouveau quiz</button>
-        <div id="existing-quizzes"></div>
-    </div>
-    <div id="quiz-play" class="hidden"></div>
+<button onclick="showInterface('main')">← Principal</button>
+<h2>Choisis une matière</h2>
+<div id="quiz-subjects"></div>
+<div id="quiz-actions" class="hidden">
+    <button onclick="createNewQuiz()">Créer un nouveau quiz</button>
+    <div id="existing-quizzes"></div>
+</div>
+<div id="quiz-play" class="hidden"></div>
 </div>
 
 <!-- Flashcards Interface -->
 <div class="container hidden" id="flashcards-interface">
-    <button onclick="showInterface('main')">← Principal</button>
-    <h2>Choisis une matière</h2>
-    <div id="flashcard-subjects"></div>
-    <div id="flashcard-actions" class="hidden">
-        <button onclick="createNewFlashcard()">Créer un nouveau</button>
-        <div id="existing-flashcards"></div>
-    </div>
-    <div id="flashcard-play" class="hidden"></div>
+<button onclick="showInterface('main')">← Principal</button>
+<h2>Choisis une matière</h2>
+<div id="flashcard-subjects"></div>
+<div id="flashcard-actions" class="hidden">
+    <button onclick="createNewFlashcard()">Créer un nouveau</button>
+    <div id="existing-flashcards"></div>
+</div>
+<div id="flashcard-play" class="hidden"></div>
 </div>
 
 <!-- Timer Interface -->
 <div class="container hidden" id="timer-interface">
-    <button onclick="showInterface('main')">← Principal</button>
-    <h2>Minuteur Pomodoro</h2>
-    <input type="number" id="timer-minutes" placeholder="Minutes" value="25">
-    <div>
-        <span id="timer-display">25:00</span>
-    </div>
-    <button onclick="startTimer()">Start</button>
-    <button onclick="pauseTimer()">Pause</button>
+<button onclick="showInterface('main')">← Principal</button>
+<h2>Minuteur Pomodoro</h2>
+<input type="number" id="timer-minutes" placeholder="Minutes" value="25">
+<div>
+    <span id="timer-display">25:00</span>
+</div>
+<button onclick="startTimer()">Start</button>
+<button onclick="pauseTimer()">Pause</button>
 </div>
 
 <!-- To-do List Interface -->
 <div class="container hidden" id="todolist-interface">
-    <button onclick="showInterface('main')">← Principal</button>
-    <h2>Liste de tâches</h2>
-    <input type="text" id="new-task" placeholder="Nouvelle tâche">
-    <button onclick="addTask()">Ajouter</button>
-    <div id="task-list"></div>
+<button onclick="showInterface('main')">← Principal</button>
+<h2>Liste de tâches</h2>
+<input type="text" id="new-task" placeholder="Nouvelle tâche">
+<button onclick="addTask()">Ajouter</button>
+<div id="task-list"></div>
 </div>
 
 <script>
+// Gestion des interfaces
 let currentInterface = 'main';
 function showInterface(name){
-    document.getElementById('main-interface').classList.add('hidden');
-    document.getElementById('quiz-interface').classList.add('hidden');
-    document.getElementById('flashcards-interface').classList.add('hidden');
-    document.getElementById('timer-interface').classList.add('hidden');
-    document.getElementById('todolist-interface').classList.add('hidden');
-    if(name==='main') name='main-interface';
-    else name=name+'-interface';
-    document.getElementById(name).classList.remove('hidden');
+    ['main','quiz','flashcards','timer','todolist'].forEach(i=>{
+        document.getElementById(i+'-interface').classList.add('hidden');
+    });
+    document.getElementById((name==='main'?'main':name)+'-interface').classList.remove('hidden');
     currentInterface = name;
 }
 
-// Timer
+// Minuteur Pomodoro
 let timerInterval, remainingTime = 25*60;
 function updateTimerDisplay(){
     let m = Math.floor(remainingTime/60);
@@ -95,12 +95,12 @@ function updateTimerDisplay(){
     document.getElementById('timer-display').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 function startTimer(){
+    remainingTime = parseInt(document.getElementById('timer-minutes').value || 25)*60;
+    updateTimerDisplay();
     clearInterval(timerInterval);
     timerInterval = setInterval(()=>{
-        if(remainingTime>0){
-            remainingTime--;
-            updateTimerDisplay();
-        } else clearInterval(timerInterval);
+        if(remainingTime>0){ remainingTime--; updateTimerDisplay(); } 
+        else clearInterval(timerInterval);
     },1000);
 }
 function pauseTimer(){ clearInterval(timerInterval); }
@@ -132,10 +132,182 @@ function deleteTask(i){
     localStorage.setItem('tasks',JSON.stringify(tasks));
     loadTasks();
 }
-window.onload = loadTasks;
+window.onload = function(){
+    loadTasks();
+    loadSubjects();
+}
 
-// Pour la suite : Quiz et Flashcards, on peut compléter avec création, modification, et lecture.
-// Vu la longueur, on peut générer un second fichier JS séparé ou l'ajouter ici.
+// --- Quiz & Flashcards ---
+let subjects = ['Math','Français','Histoire']; // Exemple
+function loadSubjects(){
+    let qs = document.getElementById('quiz-subjects');
+    let fs = document.getElementById('flashcard-subjects');
+    qs.innerHTML=''; fs.innerHTML='';
+    subjects.forEach(s=>{
+        let b1=document.createElement('button');
+        b1.textContent=s; b1.onclick=()=>selectQuizSubject(s);
+        qs.appendChild(b1);
+        let b2=document.createElement('button');
+        b2.textContent=s; b2.onclick=()=>selectFlashcardSubject(s);
+        fs.appendChild(b2);
+    });
+}
+
+// Quiz
+let currentQuizSubject='', currentQuiz=[];
+function selectQuizSubject(subject){
+    currentQuizSubject = subject;
+    document.getElementById('quiz-actions').classList.remove('hidden');
+    renderExistingQuizzes();
+}
+function renderExistingQuizzes(){
+    let div = document.getElementById('existing-quizzes');
+    div.innerHTML='';
+    let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]');
+    quizzes.forEach((q,i)=>{
+        let d=document.createElement('div'); d.className='list-item';
+        d.innerHTML=`<span>${q.title}</span>
+        <button onclick="playQuiz(${i})">Jouer</button>
+        <button onclick="editQuiz(${i})">Modifier</button>
+        <button onclick="deleteQuiz(${i})">Effacer</button>`;
+        div.appendChild(d);
+    });
+}
+function createNewQuiz(){
+    let title = prompt('Titre du quiz:');
+    if(!title) return;
+    let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]');
+    quizzes.push({title, questions:[]});
+    localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes));
+    editQuiz(quizzes.length-1);
+}
+function editQuiz(index){
+    let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]');
+    let qz = quizzes[index];
+    let adding = true;
+    while(adding){
+        let question = prompt('Écris ta question (ou annuler pour finir):');
+        if(!question) break;
+        let nb = parseInt(prompt('Nombre de choix (2-4)'))||2;
+        let options=[];
+        for(let i=0;i<nb;i++){
+            let opt=prompt('Option '+(i+1));
+            options.push(opt||'');
+        }
+        let correct=parseInt(prompt('Numéro de la bonne réponse (1-'+nb+')'))-1;
+        qz.questions.push({question,options,correct});
+    }
+    quizzes[index]=qz;
+    localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes));
+    renderExistingQuizzes();
+}
+function deleteQuiz(i){
+    let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]');
+    quizzes.splice(i,1);
+    localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes));
+    renderExistingQuizzes();
+}
+function playQuiz(index){
+    let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]');
+    currentQuiz = quizzes[index].questions;
+    let container = document.getElementById('quiz-play');
+    container.classList.remove('hidden'); container.innerHTML='';
+    let score = 0, qIndex=0;
+    function showQuestion(){
+        if(qIndex>=currentQuiz.length){
+            container.innerHTML=`Quiz terminé! Score: ${score}/${currentQuiz.length} <br>
+            <button onclick="playQuiz(${index})">Recommencer</button>
+            <button onclick="showInterface('main')">Principal</button>`;
+            return;
+        }
+        let q = currentQuiz[qIndex];
+        container.innerHTML=`<div class="quiz-question">${q.question}</div>`;
+        q.options.forEach((o,i)=>{
+            let btn = document.createElement('button');
+            btn.className='option'; btn.textContent=o;
+            btn.onclick=function(){
+                if(i===q.correct) { btn.classList.add('correct'); score++; }
+                else btn.classList.add('wrong');
+                setTimeout(()=>{qIndex++; showQuestion();},500);
+            };
+            container.appendChild(btn);
+        });
+    }
+    showQuestion();
+}
+
+// Flashcards
+let currentFlashSubject='', currentFlash=[];
+function selectFlashcardSubject(subject){
+    currentFlashSubject = subject;
+    document.getElementById('flashcard-actions').classList.remove('hidden');
+    renderExistingFlashcards();
+}
+function renderExistingFlashcards(){
+    let div = document.getElementById('existing-flashcards');
+    div.innerHTML='';
+    let flashs = JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]');
+    flashs.forEach((f,i)=>{
+        let d=document.createElement('div'); d.className='list-item';
+        d.innerHTML=`<span>${f.title}</span>
+        <button onclick="playFlashcard(${i})">Jouer</button>
+        <button onclick="editFlashcard(${i})">Modifier</button>
+        <button onclick="deleteFlashcard(${i})">Effacer</button>`;
+        div.appendChild(d);
+    });
+}
+function createNewFlashcard(){
+    let title = prompt('Titre du set de flashcards:');
+    if(!title) return;
+    let flashs = JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]');
+    flashs.push({title,cards:[]});
+    localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs));
+    editFlashcard(flashs.length-1);
+}
+function editFlashcard(index){
+    let flashs = JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]');
+    let f = flashs[index];
+    while(true){
+        let q = prompt('Question (ou annuler pour finir)');
+        if(!q) break;
+        let a = prompt('Réponse');
+        f.cards.push({q,a});
+    }
+    flashs[index]=f;
+    localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs));
+    renderExistingFlashcards();
+}
+function deleteFlashcard(i){
+    let flashs = JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]');
+    flashs.splice(i,1);
+    localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs));
+    renderExistingFlashcards();
+}
+function playFlashcard(index){
+    let flashs = JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]');
+    currentFlash = flashs[index].cards;
+    let container = document.getElementById('flashcard-play');
+    container.classList.remove('hidden'); container.innerHTML='';
+    let cIndex=0, score=0;
+    function showCard(){
+        if(cIndex>=currentFlash.length){
+            container.innerHTML=`Fin des cartes! Score: ${score}/${currentFlash.length} <br>
+            <button onclick="playFlashcard(${index})">Recommencer</button>
+            <button onclick="showInterface('main')">Principal</button>`;
+            return;
+        }
+        let card = currentFlash[cIndex];
+        let div = document.createElement('div'); div.className='flashcard';
+        div.textContent = card.q;
+        div.onclick = function(){
+            if(div.classList.contains('flipped')) return;
+            div.classList.add('flipped'); div.textContent=card.a;
+        };
+        div.ondblclick = function(){ score++; cIndex++; showCard(); }; // double click = bien
+        container.innerHTML=''; container.appendChild(div);
+    }
+    showCard();
+}
 </script>
 
 </body>
