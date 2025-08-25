@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aide Devoirs</title>
 <style>
-  body { font-family: Arial, sans-serif; margin:0; padding:20px; text-align:center; background:#f4f4f9; }
-  h1 { color:#333; }
-  .menu button { margin:10px; padding:15px; font-size:18px; border:none; border-radius:8px; cursor:pointer; background:#4CAF50; color:white; }
-  section { display:none; padding:20px; }
-  .active { display:block; }
-  .flashcard, .quizCard { border:2px solid #333; border-radius:10px; padding:20px; margin:20px auto; width:300px; background:white; cursor:pointer; }
-  .choice-buttons button, #flashResult button, .miniFile button { margin:5px; padding:10px; font-size:16px; }
-  .matiereItem { margin:10px 0; }
+body { font-family: Arial, sans-serif; margin:0; padding:20px; text-align:center; background:#f4f4f9; }
+h1 { color:#333; }
+.menu button { margin:10px; padding:15px; font-size:18px; border:none; border-radius:8px; cursor:pointer; background:#4CAF50; color:white; }
+section { display:none; padding:20px; }
+.active { display:block; }
+.flashcard, .quizCard { border:2px solid #333; border-radius:10px; padding:20px; margin:20px auto; width:300px; background:white; cursor:pointer; }
+.choice-buttons button, #flashResult button, .miniFile button { margin:5px; padding:10px; font-size:16px; }
+.matiereItem { margin:10px 0; cursor:pointer; text-decoration: underline; color: blue; }
 </style>
 </head>
 <body>
@@ -61,26 +61,26 @@ function showSection(id){document.querySelectorAll('section').forEach(s=>s.class
 function getTotalPoints(){return parseInt(localStorage.getItem('totalPoints')||'0');}
 function setTotalPoints(v){localStorage.setItem('totalPoints',v);document.getElementById('totalPoints').textContent='Points cumulés : '+v;}
 function addPoints(p){let t=getTotalPoints();t+=p;setTotalPoints(t);}
-document.addEventListener('DOMContentLoaded',()=>{setTotalPoints(getTotalPoints());loadMatieres(); renderTasks();});
+document.addEventListener('DOMContentLoaded',()=>{setTotalPoints(getTotalPoints()); loadMatieres(); renderTasks();});
 
 // ---------------- Pomodoro ----------------
 let timer,timeLeft=1500; function startPomodoro(){clearInterval(timer);timeLeft=1500;timer=setInterval(()=>{if(timeLeft<=0){clearInterval(timer);alert('Pause !');return;}timeLeft--;updateDisplay();},1000);} function resetPomodoro(){clearInterval(timer);timeLeft=1500;updateDisplay();} function updateDisplay(){let m=Math.floor(timeLeft/60),s=timeLeft%60;document.getElementById('timer').textContent=`${m}:${s<10?'0':''}${s}`;}
 
-// ---------------- Matières ----------------
+// ---------------- Matières fixes ----------------
+const MATIERES=['Math','Géo','Science','PPO','Anglais','Français'];
 let matieres=JSON.parse(localStorage.getItem('matieres')||'{}');
-function saveMatieres(){localStorage.setItem('matieres',JSON.stringify(matieres));}
-function loadMatieres(){ ['flashcards','quiz'].forEach(type=>{
+MATIERES.forEach(m=>{if(!matieres[m]) matieres[m]={flashcards:[],quiz:[]};});
+localStorage.setItem('matieres',JSON.stringify(matieres));
+
+function loadMatieres(){['flashcards','quiz'].forEach(type=>{
   let div=document.getElementById('matiere'+capitalize(type)); div.innerHTML='';
-  Object.keys(matieres).forEach(m=>{
-    let d=document.createElement('div'); d.className='matiereItem'; d.textContent=m;
-    d.onclick=()=>openMatiere(type,m); div.appendChild(d);
+  MATIERES.forEach(m=>{
+    let d=document.createElement('div'); d.className='matiereItem'; d.textContent=m; d.onclick=()=>openMatiere(type,m); div.appendChild(d);
   });
-  let btn=document.createElement('button'); btn.textContent='Créer une nouvelle matière';
-  btn.onclick=()=>{let nom=prompt('Nom de la matière ?');if(nom){matieres[nom]={flashcards:[],quiz:[]};saveMatieres();loadMatieres();}}; div.appendChild(btn);
  });}
 function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 
-// ---------------- Flashcards / Quiz ----------------
+// ---------------- Flashcards / Quiz Mini-Fichiers ----------------
 function openMatiere(type,nom){
   let data=matieres[nom][type];
   let area=document.getElementById('matiere'+capitalize(type)); area.innerHTML=`<h3>${nom}</h3>`;
@@ -89,64 +89,50 @@ function openMatiere(type,nom){
     let div=document.createElement('div'); div.className='miniFile'; div.textContent=f.titre;
     let play=document.createElement('button'); play.textContent='Jouer'; play.onclick=()=>playMiniFile(type,nom,i);
     let edit=document.createElement('button'); edit.textContent='Modifier'; edit.onclick=()=>editMiniFile(type,nom,i);
-    let del=document.createElement('button'); del.textContent='Supprimer'; del.onclick=()=>{if(confirm('Supprimer ?')){data.splice(i,1);saveMatieres();openMatiere(type,nom);}};
-    div.appendChild(play); div.appendChild(edit); div.appendChild(del);
-    area.appendChild(div);
+    let del=document.createElement('button'); del.textContent='Supprimer'; del.onclick=()=>{if(confirm('Supprimer ?')){data.splice(i,1);saveMatieres(); openMatiere(type,nom);}};
+    div.appendChild(play); div.appendChild(edit); div.appendChild(del); area.appendChild(div);
   });
 }
+
 function createMiniFile(type,nom){
   let titre=prompt('Titre ?'); if(!titre) return;
   if(type=='flashcards'){ matieres[nom][type].push({titre,cartes:[]});}
   else{ matieres[nom][type].push({titre,questions:[]});}
-  saveMatieres(); openMatiere(type,nom);}
+  saveMatieres(); openMatiere(type,nom);
+}
+
 function editMiniFile(type,nom,index){
   let mf=matieres[nom][type][index];
   let t=prompt('Titre ?',mf.titre); if(t) mf.titre=t;
-  saveMatieres(); openMatiere(type,nom);}
+  if(type=='flashcards'){ editFlashcards(mf);} else {editQuiz(mf);}
+  saveMatieres(); openMatiere(type,nom);
+}
+
 function playMiniFile(type,nom,index){
   let mf=matieres[nom][type][index];
-  if(type=='flashcards'){ playFlashcards(mf);}
-  else{ playQuiz(mf);}
+  if(type=='flashcards'){ playFlashcards(mf);} else{ playQuiz(mf);}
 }
 
 // ---------------- Flashcards ----------------
+function editFlashcards(f){
+  let done=false;
+  while(!done){
+    let action=prompt('Ajouter=1, Modifier=2, Supprimer=3, Quitter=0');
+    if(action=='0'){done=true; break;}
+    else if(action=='1'){ let q=prompt('Question ?'), a=prompt('Réponse ?'); if(q&&a) f.cartes.push({q,a});}
+    else if(action=='2'){ let idx=prompt('Numéro de la carte à modifier (0..'+(f.cartes.length-1)+')'); idx=parseInt(idx); if(f.cartes[idx]){ let q=prompt('Question ?',f.cartes[idx].q),a=prompt('Réponse ?',f.cartes[idx].a); if(q) f.cartes[idx].q=q; if(a) f.cartes[idx].a=a;}}
+    else if(action=='3'){ let idx=prompt('Numéro de la carte à supprimer (0..'+(f.cartes.length-1)+')'); idx=parseInt(idx); if(f.cartes[idx]) f.cartes.splice(idx,1);}
+  }
+}
+
 function playFlashcards(f){
   let idx=0,errors=[],correct=[];
   let area=document.getElementById('matiereFlashcards'); area.innerHTML='';
   let flashBox=document.createElement('div'); flashBox.className='flashcard'; area.appendChild(flashBox);
-  let btnArea=document.createElement('div'); area.appendChild(btnArea);
-  let btnNon=document.createElement('button'); btnNon.textContent='Non Réussi';
-  let btnOui=document.createElement('button'); btnOui.textContent='Réussi';
-  btnNon.onclick=()=>{errors.push(f.cartes[idx]);idx++; nextFlash();};
-  btnOui.onclick=()=>{correct.push(f.cartes[idx]);addPoints(1);idx++; nextFlash();};
-  btnArea.appendChild(btnNon); btnArea.appendChild(btnOui);
-  function nextFlash(){if(idx<f.cartes.length){flashBox.textContent=f.cartes[idx].q;}else{flashBox.textContent='Terminé !';
+  let btnNon=document.createElement('button'); btnNon.textContent='Non Réussi'; btnNon.style.float='left';
+  let btnOui=document.createElement('button'); btnOui.textContent='Réussi'; btnOui.style.float='right';
+  area.appendChild(btnNon); area.appendChild(btnOui);
+  function nextFlash(){if(idx<f.cartes.length){flashBox.textContent=f.cartes[idx].q;}else{
+    flashBox.textContent='Terminé !'; btnNon.style.display='none'; btnOui.style.display='none';
     let res=document.createElement('div'); area.appendChild(res);
-    res.innerHTML=`<p>Bonnes réponses: ${correct.length} | Erreurs: ${errors.length}</p>`;
-    let r1=document.createElement('button'); r1.textContent='Recommencer erreurs'; r1.onclick=()=>{f.cartes=errors;idx=0;errors=[];correct=[]; nextFlash();};
-    let r2=document.createElement('button'); r2.textContent='Tout recommencer'; r2.onclick=()=>{idx=0;errors=[];correct=[]; nextFlash();};
-    let r3=document.createElement('button'); r3.textContent='Retour'; r3.onclick=()=>{loadMatieres(); showSection('flashcards');};
-    res.appendChild(r1); res.appendChild(r2); res.appendChild(r3);
-    if(errors.length==0){document.body.style.backgroundImage='url(https://www.revuegestion.ca/media/catalog/product/cache/7d8773d41e9a235130315e20e7d850f9/j/o/joie766.jpg)'; setTimeout(()=>{document.body.style.backgroundImage='';},15000);}
-  }} nextFlash();
-}
-
-// ---------------- Quiz ----------------
-function playQuiz(f){
-  let idx=0,score=0;
-  let area=document.getElementById('matiereQuiz'); area.innerHTML='';
-  function nextQ(){area.innerHTML=''; if(idx<f.questions.length){
-    let q=f.questions[idx]; let qd=document.createElement('div'); qd.className='quizCard'; qd.textContent=q.q; area.appendChild(qd);
-    q.choix.forEach((c,i)=>{let b=document.createElement('button'); b.textContent=c; b.onclick=()=>{if(i===q.bonne){alert('Correct !'); addPoints(1);} else{alert('Faux !');} idx++; nextQ();}; area.appendChild(b);});
-  }else{area.innerHTML='<p>Quiz terminé ✅</p>';}}
-  nextQ();
-}
-
-// ---------------- Liste ----------------
-let tasks=JSON.parse(localStorage.getItem('tasks')||'[]');
-function saveTasks(){localStorage.setItem('tasks',JSON.stringify(tasks));}
-function addTask(){let t=document.getElementById('taskInput').value;if(t){tasks.push(t);saveTasks(); renderTasks(); document.getElementById('taskInput').value='';}}
-function renderTasks(){let l=document.getElementById('taskList'); l.innerHTML=''; tasks.forEach((t,i)=>{let li=document.createElement('li'); li.textContent=t; li.onclick=()=>{tasks.splice(i,1);saveTasks();renderTasks();}; l.appendChild(li);});}
-</script>
-</body>
-</html>
+    res.innerHTML=`<p>Bonnes réponses: ${correct.length} | Erreurs: ${
