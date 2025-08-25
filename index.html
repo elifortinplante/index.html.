@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aide Devoir Complet</title>
+<style>
+  body{font-family:Arial,sans-serif;margin:0;padding:0;background:#f0f8ff;}
+  header{background:#007acc;color:white;text-align:center;padding:1rem;}
+  main{padding:1rem;}
+  button{margin:0.2rem;padding:0.5rem 1rem;cursor:pointer;}
+  input,textarea,select{width:90%;padding:0.5rem;margin:0.5rem 0;}
+  .section{display:none;padding:1rem;background:#fff;margin:1rem 0;border-radius:10px;box-shadow:0 0 10px #ccc;}
+  .active{display:block;}
+  ul{list-style:none;padding-left:0;}
+  li{padding:0.5rem;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;align-items:center;}
+  .quiz-card,.flashcard-group{margin-bottom:1rem;padding:0.5rem;border:1px solid #007acc;border-radius:5px;}
+  .quiz-question,.flashcard-card{border:1px solid #007acc;border-radius:5px;margin:0.5rem 0;padding:0.5rem;}
+  .choices input[type="radio"]{margin-right:0.5rem;}
+  .correct{background-color:#c8f7c5;}
+  .wrong{background-color:#f7c5c5;}
+  .card{cursor:pointer;perspective:1000px;display:inline-block;margin:0.5rem;}
+  .card-inner{position:relative;width:200px;height:120px;text-align:center;transition:transform 0.6s;transform-style:preserve-3d;}
+  .card-front,.card-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;display:flex;justify-content:center;align-items:center;border:1px solid #007acc;border-radius:5px;background:white;}
+  .card-back{transform:rotateY(180deg);}
+  .flipped{transform:rotateY(180deg);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Aide Devoir Complet</h1>
+</header>
+
+<main>
+  <!-- Interface principale -->
+  <div id="main-interface" class="section active">
+    <button onclick="showSection('quiz-interface')">Quiz</button>
+    <button onclick="showSection('flashcard-interface')">Flashcards</button>
+    <button onclick="showSection('pomodoro-interface')">Minuteur / Pomodoro</button>
+    <button onclick="showSection('todolist-interface')">Liste de Tâches</button>
+  </div>
+
+  <!-- Quiz -->
+  <div id="quiz-interface" class="section">
+    <button onclick="showSection('main-interface')">← Principal</button>
+    <h2>Quiz par matière</h2>
+    <select id="quiz-matieres" onchange="loadQuizMatieres()">
+      <option value="">--Sélectionner--</option>
+      <option value="math">Math</option>
+      <option value="francais">Français</option>
+      <option value="science">Science</option>
+    </select>
+    <div id="quiz-container"></div>
+  </div>
+
+  <!-- Flashcards -->
+  <div id="flashcard-interface" class="section">
+    <button onclick="showSection('main-interface')">← Principal</button>
+    <h2>Flashcards par matière</h2>
+    <select id="flashcard-matieres" onchange="loadFlashcardsMatieres()">
+      <option value="">--Sélectionner--</option>
+      <option value="math">Math</option>
+      <option value="francais">Français</option>
+      <option value="science">Science</option>
+    </select>
+    <div id="flashcard-container"></div>
+  </div>
+
+  <!-- Pomodoro -->
+  <div id="pomodoro-interface" class="section">
+    <button onclick="showSection('main-interface')">← Principal</button>
+    <h2>Minuteur / Pomodoro</h2>
+    <input type="number" id="pomodoro-minutes" placeholder="Minutes" value="25">
+    <p id="pomodoro-timer">25:00</p>
+    <button onclick="startPomodoro()">Start</button>
+    <button onclick="pausePomodoro()">Pause</button>
+    <button onclick="resetPomodoro()">Réinitialiser</button>
+  </div>
+
+  <!-- Liste de tâches -->
+  <div id="todolist-interface" class="section">
+    <button onclick="showSection('main-interface')">← Principal</button>
+    <h2>Liste de tâches</h2>
+    <input type="text" id="task-input" placeholder="Nouvelle tâche">
+    <button onclick="addTask()">Ajouter</button>
+    <ul id="task-list"></ul>
+  </div>
+
+</main>
+
+<script>
+  // --- Navigation ---
+  function showSection(id){
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // --- Pomodoro ---
+  let pomodoroTime=25*60,pomodoroInterval=null;
+  function updatePomodoroTimer(){
+    let m=Math.floor(pomodoroTime/60).toString().padStart(2,'0');
+    let s=(pomodoroTime%60).toString().padStart(2,'0');
+    document.getElementById('pomodoro-timer').textContent=`${m}:${s}`;
+  }
+  function startPomodoro(){
+    if(pomodoroInterval) return;
+    let val=parseInt(document.getElementById('pomodoro-minutes').value);
+    if(!isNaN(val)) pomodoroTime=val*60;
+    pomodoroInterval=setInterval(()=>{if(pomodoroTime>0){pomodoroTime--;updatePomodoroTimer();}else{clearInterval(pomodoroInterval);pomodoroInterval=null;alert("Temps écoulé !");}},1000);
+  }
+  function pausePomodoro(){clearInterval(pomodoroInterval);pomodoroInterval=null;}
+  function resetPomodoro(){pausePomodoro();updatePomodoroTimer();}
+
+  // --- Liste de tâches ---
+  let tasks=JSON.parse(localStorage.getItem('tasks')||"[]");
+  function renderTasks(){
+    const list=document.getElementById('task-list');list.innerHTML='';
+    tasks.forEach((t,i)=>{
+      const li=document.createElement('li');
+      li.innerHTML=`<span>${t}</span><button onclick="deleteTask(${i})">X</button>`;
+      list.appendChild(li);
+    });
+  }
+  function addTask(){const val=document.getElementById('task-input').value;if(val){tasks.push(val);document.getElementById('task-input').value='';saveTasks();renderTasks();}}
+  function deleteTask(i){tasks.splice(i,1);saveTasks();renderTasks();}
+  function saveTasks(){localStorage.setItem('tasks',JSON.stringify(tasks));}
+  renderTasks();
+
+  // --- Quiz ---
+  let quizData=JSON.parse(localStorage.getItem('quizData')||"{}");
+  function loadQuizMatieres(){
+    const mat=document.getElementById('quiz-matieres').value;
+    const container=document.getElementById('quiz-container');container.innerHTML='';
+    if(!mat) return;if(!quizData[mat]) quizData[mat]=[];
+    container.innerHTML=`<button onclick="createNewQuiz('${mat}')">Créer Nouveau Quiz</button>`;
+    quizData[mat].forEach((q,i)=>{
+      const div=document.createElement('div');div.className='quiz-card';
+      div.innerHTML=`${q.title} <button onclick="playQuiz('${mat}',${i})">Jouer</button> <button onclick="modifyQuiz('${mat}',${i})">Modifier</button> <button onclick="deleteQuiz('${mat}',${i})">Supprimer</button>`;
+      container.appendChild(div);
+    });
+  }
+  function createNewQuiz(mat){
+    const title=prompt("Titre du quiz?");if(!title) return;
+    quizData[mat].push({title:title,questions:[]});saveQuizData();loadQuizMatieres();modifyQuiz(mat,quizData[mat].length-1);
+  }
+  function modifyQuiz(mat,i){
+    let quiz=quizData[mat][i];let addQuestion=true;
+    while(addQuestion){
+      let qText=prompt("Écrire la question:");if(!qText) break;
+      let nbChoices=parseInt(prompt("Combien de réponses (2 à 4)?"));if(nbChoices<2) nbChoices=2;if(nbChoices>4) nbChoices=4;
+      let choices=[];for(let c=0;c<nbChoices;c++){let txt=prompt(`Réponse ${c+1}:`);choices.push(txt||'');}
+      let correct=parseInt(prompt("Numéro de la bonne réponse (1-"+nbChoices+")"))-1;
+      quiz.questions.push({text:qText,choices:choices,correct:correct});
+      addQuestion=confirm("Ajouter une autre question?");
+    }saveQuizData();
+  }
+  function deleteQuiz(mat,i){if(confirm("Supprimer ce quiz?")){quizData[mat].splice(i,1);saveQuizData();loadQuizMatieres();}}
+  function playQuiz(mat,i){
+    const quiz=quizData[mat][i];let score=0;let current=0;function nextQuestion(){
+      if(current>=quiz.questions.length){alert(`Quiz terminé! Score: ${score}/${quiz.questions.length}`);return;}
+      const q=quiz.questions[current];let ans=prompt(q.text+"\n"+q.choices.map((c,j)=>`${j+1}: ${c}`).join("\n"));
+      if(parseInt(ans)-1===q.correct) score++;current++;nextQuestion();
+    }nextQuestion();
+  }
+  function saveQuizData(){localStorage.setItem('quizData',JSON.stringify(quizData));}
+
+  // --- Flashcards interactives ---
+  let flashcardData=JSON.parse(localStorage.getItem('flashcardData')||"{}");
+  function loadFlashcardsMatieres(){
+    const mat=document.getElementById('flashcard-matieres').value;
+    const container=document.getElementById('flashcard-container');container.innerHTML='';
+    if(!mat) return;if(!flashcardData[mat]) flashcardData[mat]=[];
+    container.innerHTML=`<button onclick="createNewFlashcard('${mat}')">Créer Nouveau Groupe</button>`;
+    flashcardData[mat].forEach((f,i)=>{
+      const div=document.createElement('div');div.className='flashcard-group';
+      div.innerHTML=`${f.title} <button onclick="playFlashcard('${mat}',${i})">Jouer</button> <button onclick="modifyFlashcard('${mat}',${i})">Modifier</button> <button onclick="deleteFlashcard('${mat}',${i})">Supprimer</button>`;
+      container.appendChild(div);
+    });
+  }
+  function createNewFlashcard(mat){
+    const title=prompt("Titre du groupe de flashcards?");if(!title) return;
+    flashcardData[mat].push({title:title,cards:[]});saveFlashcardData();loadFlashcardsMatieres();modifyFlashcard(mat,flashcardData[mat].length-1);
+  }
+  function modifyFlashcard(mat,i){
+    const group=flashcardData[mat][i];let addCard=true;
+    while(addCard){
+      let q=prompt("Question:");if(!q) break;
+      let a=prompt("Réponse:");group.cards.push({question:q,answer:a});
+      addCard=confirm("Ajouter une autre carte?");
+    }
+    saveFlashcardData();
+  }
+  function deleteFlashcard(mat,i){if(confirm("Supprimer ce groupe?")){flashcardData[mat].splice(i,1);saveFlashcardData();loadFlashcardsMatieres();}}
+
+  function playFlashcard(mat,i){
+    const group=flashcardData[mat][i];
+    let cards=[...group.cards];let score=0;let currentIndex=0;
+    const container=document.getElementById('flashcard-container');
+    container.innerHTML=`<button onclick="loadFlashcardsMatieres()">← Retour</button><div id="flashcard-play-area"></div><p id="flashcard-score"></p>`;
+    const playArea=document.getElementById('flashcard-play-area');
+    const scoreDisplay=document.getElementById('flashcard-score');
+
+    function showCard(){
+      playArea.innerHTML='';
+      if(currentIndex>=cards.length){scoreDisplay.textContent=`Fin! Score: ${score}/${cards.length}`;return;}
+      const c=cards[currentIndex];
+      const cardDiv=document.createElement('div');cardDiv.className='card';
+      cardDiv.innerHTML=`<div class="card-inner"><div class="card-front">${c.question}</div><div class="card-back">${c.answer}</div></div>`;
+      playArea.appendChild(cardDiv);
+      const inner=cardDiv.querySelector('.card-inner');
+      cardDiv.addEventListener('click',()=>{inner.classList.toggle('flipped');});
+      let startX=0;let isDragging=false;
+      cardDiv.addEventListener('mousedown',e=>{startX=e.clientX;isDragging=true;});
+      cardDiv.addEventListener('mousemove',e=>{if(!isDragging) return;let dx=e.clientX-startX;cardDiv.style.transform=`translateX(${dx}px) rotate(${dx/10}deg)`;});
+      cardDiv.addEventListener('mouseup',e=>{if(!isDragging) return;isDragging=false;let dx=e.clientX-startX;cardDiv.style.transform='';if(dx>100){score++;currentIndex++;showCard();}else if(dx<-100){currentIndex++;showCard();}});
+    }
+
+    showCard();
+  }
+  function saveFlashcardData(){localStorage.setItem('flashcardData',JSON.stringify(flashcardData));}
+</script>
+
+</body>
+</html>
