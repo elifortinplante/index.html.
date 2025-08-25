@@ -5,24 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aide Devoir</title>
 <style>
-  body { font-family: Arial, sans-serif; margin:0; background:#e0f7fa; color:#333; }
-  .hidden { display: none; }
-  .container { padding:20px; max-width:800px; margin:auto; }
-  button { margin:5px; padding:10px 20px; cursor:pointer; border:none; border-radius:6px; background:#0288d1; color:white; font-weight:bold; transition:0.2s; }
-  button:hover { background:#0277bd; }
-  h1,h2,h3 { text-align:center; }
-  input[type="text"], input[type="number"] { padding:5px; margin-right:5px; width:70%; border-radius:4px; border:1px solid #ccc; }
-  .flashcard { cursor:pointer; padding:20px; border-radius:10px; text-align:center; background:#fff; margin:10px 0; perspective:1000px; box-shadow:0 2px 6px rgba(0,0,0,0.2);}
-  .flashcard-inner { transition:0.6s; transform-style:preserve-3d; position:relative; }
-  .flashcard.flipped .flashcard-inner { transform:rotateY(180deg); }
-  .flashcard-front, .flashcard-back { backface-visibility:hidden; position:absolute; width:100%; height:100%; top:0; left:0; display:flex; justify-content:center; align-items:center; font-size:18px; }
-  .flashcard-back { transform:rotateY(180deg); background:#c8e6c9; }
-  .task-list { list-style:none; padding:0; }
-  .task { background:#fff; padding:10px; margin:5px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
-  .quiz-choice { display:block; margin:5px 0; width:100%; }
-  .correct { background-color:#a5d6a7 !important; }
-  .wrong { background-color:#ef9a9a !important; }
-  select { padding:6px; border-radius:4px; border:1px solid #ccc; }
+body { font-family: Arial, sans-serif; margin:0; background:#e0f7fa; color:#333; }
+.hidden { display: none; }
+.container { padding:20px; max-width:800px; margin:auto; }
+button { margin:5px; padding:10px 20px; cursor:pointer; border:none; border-radius:6px; background:#0288d1; color:white; font-weight:bold; transition:0.2s; }
+button:hover { background:#0277bd; }
+h1,h2,h3 { text-align:center; }
+input[type="text"], input[type="number"] { padding:5px; margin-right:5px; width:70%; border-radius:4px; border:1px solid #ccc; }
+.flashcard { cursor:pointer; padding:20px; border-radius:10px; text-align:center; background:#fff; margin:10px 0; perspective:1000px; box-shadow:0 2px 6px rgba(0,0,0,0.2);}
+.flashcard-inner { transition:0.6s; transform-style:preserve-3d; position:relative; }
+.flashcard.flipped .flashcard-inner { transform:rotateY(180deg); }
+.flashcard-front, .flashcard-back { backface-visibility:hidden; position:absolute; width:100%; height:100%; top:0; left:0; display:flex; justify-content:center; align-items:center; font-size:18px; }
+.flashcard-back { transform:rotateY(180deg); background:#c8e6c9; }
+.task-list { list-style:none; padding:0; }
+.task { background:#fff; padding:10px; margin:5px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+.quiz-choice { display:block; margin:5px 0; width:100%; }
+.correct { background-color:#a5d6a7 !important; }
+.wrong { background-color:#ef9a9a !important; }
+select { padding:6px; border-radius:4px; border:1px solid #ccc; }
 </style>
 </head>
 <body>
@@ -70,8 +70,6 @@
     <div id="flashcardContainer"></div>
     <div id="flashcardScoreDiv" class="hidden">
       <h3>Score: <span id="flashcardScore"></span></h3>
-      <button onclick="restartFlashcards()">Recommencer</button>
-      <button onclick="restartFlashcardsErrors()">Recommencer les erreurs</button>
     </div>
   </div>
 </div>
@@ -196,24 +194,46 @@ function showFlashcard(){
   const container=document.getElementById('flashcardContainer'); container.innerHTML='';
   if(currentFlashcardIndex>=currentFlashcardGroup.cards.length){
     document.getElementById('flashcardScore').textContent=flashcardScore;
-    document.getElementById('flashcardScoreDiv').classList.remove('hidden'); return;
+    document.getElementById('flashcardScoreDiv').classList.remove('hidden');
+    if(!document.getElementById('flashcardHomeBtn')){
+      let homeBtn = document.createElement('button');
+      homeBtn.textContent = "Home";
+      homeBtn.id = 'flashcardHomeBtn';
+      homeBtn.onclick = ()=>{
+        backToMain();
+        document.getElementById('flashcardPlay').classList.add('hidden');
+        document.getElementById('flashcardList').classList.remove('hidden');
+      }
+      document.getElementById('flashcardScoreDiv').appendChild(homeBtn);
+    }
+    return;
   }
+
   let card=currentFlashcardGroup.cards[currentFlashcardIndex];
+
   let div=document.createElement('div'); div.className='flashcard';
   let inner=document.createElement('div'); inner.className='flashcard-inner';
   let front=document.createElement('div'); front.className='flashcard-front'; front.textContent=card.question;
   let back=document.createElement('div'); back.className='flashcard-back'; back.textContent=card.answer;
   inner.appendChild(front); inner.appendChild(back); div.appendChild(inner);
-  div.onclick=()=>{ div.classList.toggle('flipped'); };
-  div.ondblclick=()=>{
-    let res=prompt('Bien ou Mal ? (b/m)'); 
-    if(res==='b'){flashcardScore++;} else {flashcardErrors.push(card);}
-    currentFlashcardIndex++; showFlashcard(); saveAll();
-  };
   container.appendChild(div);
+
+  div.onclick=()=>{ div.classList.toggle('flipped'); };
+
+  // Boutons Bien/Mal
+  let btnContainer = document.createElement('div');
+  btnContainer.style.display = 'flex'; btnContainer.style.justifyContent = 'flex-end'; btnContainer.style.marginTop = '10px';
+  let correctBtn = document.createElement('button'); correctBtn.textContent='Bien';
+  correctBtn.onclick=()=>{
+    flashcardScore++; currentFlashcardIndex++; showFlashcard();
+  };
+  let wrongBtn = document.createElement('button'); wrongBtn.textContent='Mal';
+  wrongBtn.onclick=()=>{
+    flashcardErrors.push(card); currentFlashcardIndex++; showFlashcard();
+  };
+  btnContainer.appendChild(wrongBtn); btnContainer.appendChild(correctBtn);
+  container.appendChild(btnContainer);
 }
-function restartFlashcards(){ currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[]; showFlashcard(); }
-function restartFlashcardsErrors(){ currentFlashcardGroup.cards=flashcardErrors; currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[]; showFlashcard(); }
 
 /* ---------------- Quiz ---------------- */
 let quizzes=[], currentQuiz=null, currentQIndex=0, quizScore=0, quizErrors=[];
