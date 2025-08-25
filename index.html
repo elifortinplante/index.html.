@@ -5,25 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aide Devoir Complet</title>
 <style>
-body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f5; }
+body { font-family: Arial,sans-serif; margin:0; padding:0; background:#f0f0f5; }
 .hidden { display:none; }
-.container { padding:20px; }
+.container { padding:20px; min-height:100vh; background-size:cover; background-position:center; }
 button { margin:5px; padding:10px 20px; font-size:16px; cursor:pointer; }
 input[type="text"], input[type="number"] { padding:5px; font-size:16px; }
-.list-item, .quiz-question, .flashcard { background:#fff; margin:10px 0; padding:15px; border-radius:10px; display:flex; align-items:center; }
+.list-item { background:#fff; margin:10px 0; padding:15px; border-radius:10px; display:flex; align-items:center; cursor:grab; }
 .list-item span { flex:1; }
 .list-item button { margin-left:5px; }
-.flashcard { justify-content:center; text-align:center; cursor:pointer; transition:0.3s; user-select:none; }
-.flashcard.flipped { background:#d1ffd1; transform: rotateY(180deg); }
+.flashcard { width:300px; height:150px; margin:auto; perspective:1000px; cursor:pointer; position:relative; margin-top:20px; }
+.flashcard .front, .flashcard .back {
+  width:100%; height:100%; position:absolute; backface-visibility:hidden;
+  display:flex; justify-content:center; align-items:center; font-size:18px; border-radius:10px; color:#000;
+}
+.flashcard .back { transform: rotateY(180deg); }
 .option { margin:5px 0; }
 .correct { background:#d1ffd1; }
 .wrong { background:#ffd1d1; }
-.draggable { cursor: grab; }
 </style>
 </head>
 <body>
 
-<div class="container" id="main-interface">
+<!-- Interface principale -->
+<div class="container" id="main-interface" style="background-image:url('https://source.unsplash.com/800x600/?study');">
 <h1>Aide Devoir</h1>
 <button onclick="showInterface('quiz')">Quiz</button>
 <button onclick="showInterface('flashcards')">Flashcards</button>
@@ -31,7 +35,8 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; }
 <button onclick="showInterface('todolist')">Liste</button>
 </div>
 
-<div class="container hidden" id="quiz-interface">
+<!-- Quiz Interface -->
+<div class="container hidden" id="quiz-interface" style="background-image:url('https://source.unsplash.com/800x600/?notebook');">
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Choisis une matière</h2>
 <div id="quiz-subjects"></div>
@@ -42,7 +47,8 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; }
 <div id="quiz-play" class="hidden"></div>
 </div>
 
-<div class="container hidden" id="flashcards-interface">
+<!-- Flashcards Interface -->
+<div class="container hidden" id="flashcards-interface" style="background-image:url('https://source.unsplash.com/800x600/?cards');">
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Choisis une matière</h2>
 <div id="flashcard-subjects"></div>
@@ -53,7 +59,8 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; }
 <div id="flashcard-play" class="hidden"></div>
 </div>
 
-<div class="container hidden" id="timer-interface">
+<!-- Timer Interface -->
+<div class="container hidden" id="timer-interface" style="background-image:url('https://source.unsplash.com/800x600/?clock');">
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Minuteur Pomodoro</h2>
 <input type="number" id="timer-minutes" placeholder="Minutes" value="25">
@@ -64,7 +71,8 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; }
 <button onclick="pauseTimer()">Pause</button>
 </div>
 
-<div class="container hidden" id="todolist-interface">
+<!-- To-do List Interface -->
+<div class="container hidden" id="todolist-interface" style="background-image:url('https://source.unsplash.com/800x600/?notes');">
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Liste de tâches</h2>
 <input type="text" id="new-task" placeholder="Nouvelle tâche">
@@ -102,7 +110,7 @@ function loadTasks(){
 let tasks = JSON.parse(localStorage.getItem('tasks')||'[]');
 let container = document.getElementById('task-list'); container.innerHTML='';
 tasks.forEach((t,i)=>{
-let div=document.createElement('div'); div.className='list-item draggable';
+let div=document.createElement('div'); div.className='list-item';
 div.draggable=true; div.innerHTML=`<span>${t}</span><button onclick="deleteTask(${i})">X</button>`;
 div.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', i); });
 div.addEventListener('dragover', e=>{ e.preventDefault(); });
@@ -200,7 +208,7 @@ setTimeout(()=>{qIndex++; showQuestion();},500);
 }
 
 // --- Flashcards ---
-let currentFlashSubject='', currentFlash=[], flashErrors=[];
+let currentFlashSubject='', currentFlash=[], flashErrors=[], cIndex = 0;
 function selectFlashcardSubject(subject){
 currentFlashSubject=subject; document.getElementById('flashcard-actions').classList.remove('hidden'); renderExistingFlashcards();
 }
@@ -235,21 +243,38 @@ localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs)); rende
 function playFlashcard(index, onlyErrors=false){
 let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); currentFlash=JSON.parse(JSON.stringify(flashs[index].cards));
 if(onlyErrors && flashErrors.length>0) currentFlash=flashErrors;
-flashErrors=[]; let container=document.getElementById('flashcard-play'); container.classList.remove('hidden'); container.innerHTML='';
-let cIndex=0, score=0;
-function showCard(){
+flashErrors=[]; cIndex=0;
+showFlashCard();
+}
+function showFlashCard(){
+let container=document.getElementById('flashcard-play');
 if(cIndex>=currentFlash.length){
-container.innerHTML=`Fin des cartes! Score: ${score}/${currentFlash.length} <br>
-${flashErrors.length>0?'<button onclick="playFlashcard('+index+',true)">Recommencer erreurs</button>':''}
-<button onclick="playFlashcard(${index})">Recommencer</button>
+container.innerHTML=`Fin des cartes! Score: ${currentFlash.length - flashErrors.length}/${currentFlash.length} <br>
+${flashErrors.length>0?'<button onclick="playFlashcard(0,true)">Recommencer erreurs</button>':''}
+<button onclick="playFlashcard(0)">Recommencer</button>
 <button onclick="showInterface('main')">Principal</button>`; return;
 }
-let card=currentFlash[cIndex]; let div=document.createElement('div'); div.className='flashcard'; div.textContent=card.q;
-div.onclick=function(){ if(div.classList.contains('flipped')) return; div.classList.add('flipped'); div.textContent=card.a; };
-div.ondblclick=function(){ score++; cIndex++; showCard(); };
-div.oncontextmenu=function(e){ e.preventDefault(); flashErrors.push(card); cIndex++; showCard(); };
-container.innerHTML=''; container.appendChild(div);
-} showCard();
+let card=currentFlash[cIndex];
+container.innerHTML = `
+<div class="flashcard" style="background-color:#fff;">
+    <div class="front">${card.q}</div>
+    <div class="back hidden">${card.a}</div>
+</div>
+<div style="display:flex; justify-content:space-between; margin-top:10px;">
+    <button onclick="markCard(false)">✗ Mal</button>
+    <button onclick="markCard(true)">✓ Bien</button>
+</div>
+`;
+let flashDiv = container.querySelector('.flashcard');
+flashDiv.onclick = function(){
+flashDiv.querySelector('.front').classList.toggle('hidden');
+flashDiv.querySelector('.back').classList.toggle('hidden');
+};
+}
+function markCard(isGood){
+if(!isGood) flashErrors.push(currentFlash[cIndex]);
+cIndex++;
+showFlashCard();
 }
 
 window.onload=function(){ loadTasks(); loadSubjects(); };
