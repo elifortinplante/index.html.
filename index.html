@@ -5,22 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aide Devoir</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 0; background: #f0f0f0; }
+  body { font-family: Arial, sans-serif; margin:0; background:#f0f0f0; }
   .hidden { display: none; }
-  .container { padding: 20px; max-width: 900px; margin: auto; }
-  button { margin: 5px; padding: 10px 20px; cursor: pointer; }
-  .card, .task { background: white; padding: 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
-  .task-list { list-style: none; padding: 0; }
-  input[type="text"] { padding: 5px; margin-right: 5px; width: 70%; }
-  .flashcard { cursor: pointer; padding: 20px; border-radius: 10px; text-align: center; background: #fff; margin: 10px 0; perspective: 1000px; }
-  .flashcard-inner { transition: transform 0.6s; transform-style: preserve-3d; position: relative; }
-  .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
-  .flashcard-front, .flashcard-back { backface-visibility: hidden; position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; justify-content: center; align-items: center; font-size: 18px; }
-  .flashcard-back { transform: rotateY(180deg); background: #d0ffd0; }
-  .quiz-question { margin: 10px 0; }
-  .correct { background-color: #a0ffa0; }
-  .wrong { background-color: #ffa0a0; }
-  .draggable { cursor: grab; }
+  .container { padding:20px; max-width:900px; margin:auto; }
+  button { margin:5px; padding:10px 20px; cursor:pointer; }
+  input[type="text"], input[type="number"] { padding:5px; margin-right:5px; width:70%; }
+  .card, .task { background:#fff; padding:10px; margin:5px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .task-list { list-style:none; padding:0; }
+  .flashcard { cursor:pointer; padding:20px; border-radius:10px; text-align:center; background:#fff; margin:10px 0; perspective:1000px; }
+  .flashcard-inner { transition:0.6s; transform-style:preserve-3d; position:relative; }
+  .flashcard.flipped .flashcard-inner { transform:rotateY(180deg); }
+  .flashcard-front, .flashcard-back { backface-visibility:hidden; position:absolute; width:100%; height:100%; top:0; left:0; display:flex; justify-content:center; align-items:center; font-size:18px; }
+  .flashcard-back { transform:rotateY(180deg); background:#d0ffd0; }
+  .quiz-question { margin:10px 0; }
+  .correct { background-color:#a0ffa0; }
+  .wrong { background-color:#ffa0a0; }
+  .draggable { cursor:grab; }
 </style>
 </head>
 <body>
@@ -35,19 +35,37 @@
 <!-- Quiz Interface -->
 <div class="container hidden" id="quizInterface">
   <button onclick="backToMain()">← Retour</button>
-  <h2>Choisir une matière</h2>
-  <div id="quizSubjects"></div>
+  <h2>Quiz</h2>
   <button onclick="createQuiz()">Créer un nouveau quiz</button>
   <div id="quizList"></div>
+  <div id="quizPlay" class="hidden">
+    <h3 id="quizTitle"></h3>
+    <div id="quizQuestion"></div>
+    <div id="quizChoices"></div>
+    <button id="nextQuestionBtn" onclick="nextQuestion()">Suivant</button>
+    <div id="quizScore" class="hidden"></div>
+    <button id="retryBtn" class="hidden" onclick="retryQuiz()">Recommencer le quiz</button>
+    <button id="retryErrorBtn" class="hidden" onclick="retryErrors()">Recommencer seulement les erreurs</button>
+    <button onclick="backToMain()">Menu principal</button>
+  </div>
 </div>
 
 <!-- Flashcard Interface -->
 <div class="container hidden" id="flashcardInterface">
   <button onclick="backToMain()">← Retour</button>
-  <h2>Choisir une matière</h2>
-  <div id="flashcardSubjects"></div>
+  <h2>Flashcards</h2>
   <button onclick="createFlashcard()">Créer un nouveau groupe de flashcards</button>
   <div id="flashcardList"></div>
+  <div id="flashcardPlay" class="hidden">
+    <h3 id="flashcardTitle"></h3>
+    <div id="flashcardContainer"></div>
+    <div id="flashcardScoreDiv" class="hidden">
+      <h3>Score: <span id="flashcardScore"></span></h3>
+      <button onclick="restartFlashcards()">Recommencer</button>
+      <button onclick="restartFlashcardsErrors()">Recommencer les erreurs</button>
+      <button onclick="backToMain()">Menu principal</button>
+    </div>
+  </div>
 </div>
 
 <!-- Pomodoro Timer -->
@@ -71,84 +89,160 @@
 
 <script>
 let currentInterface = 'mainMenu';
-
 function showInterface(name) {
   document.getElementById(currentInterface).classList.add('hidden');
-  document.getElementById(name + 'Interface').classList.remove('hidden');
+  document.getElementById(name+'Interface').classList.remove('hidden');
   currentInterface = name;
 }
-
-// Retour au menu principal
 function backToMain() {
   document.getElementById(currentInterface).classList.add('hidden');
   document.getElementById('mainMenu').classList.remove('hidden');
   currentInterface = 'mainMenu';
 }
 
-/* ------------------- Pomodoro ------------------- */
-let pomodoroTimer;
-let pomodoroTime = 0;
+/* ---------------- Pomodoro ---------------- */
+let pomodoroTimer; let pomodoroTime=0;
 function startPomodoro() {
   clearInterval(pomodoroTimer);
-  let minutes = parseInt(document.getElementById('pomodoroMinutes').value) || 25;
-  pomodoroTime = minutes * 60;
-  pomodoroTimer = setInterval(() => {
-    let m = Math.floor(pomodoroTime / 60);
-    let s = pomodoroTime % 60;
-    document.getElementById('pomodoroDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    if(pomodoroTime <= 0) clearInterval(pomodoroTimer);
+  let minutes=parseInt(document.getElementById('pomodoroMinutes').value)||25;
+  pomodoroTime=minutes*60;
+  pomodoroTimer=setInterval(()=>{
+    let m=Math.floor(pomodoroTime/60), s=pomodoroTime%60;
+    document.getElementById('pomodoroDisplay').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if(pomodoroTime<=0) clearInterval(pomodoroTimer);
     pomodoroTime--;
-  }, 1000);
+  },1000);
 }
-function pausePomodoro() { clearInterval(pomodoroTimer); }
+function pausePomodoro(){ clearInterval(pomodoroTimer); }
 
-/* ------------------- Todo List ------------------- */
+/* ---------------- Todo List ---------------- */
 function addTask() {
-  let input = document.getElementById('newTaskInput');
-  if(input.value.trim() === '') return;
-  const li = document.createElement('li');
-  li.className = 'task draggable';
-  li.textContent = input.value;
-  const xBtn = document.createElement('button');
-  xBtn.textContent = 'X';
-  xBtn.onclick = () => li.remove();
+  let input=document.getElementById('newTaskInput');
+  if(input.value.trim()==='') return;
+  const li=document.createElement('li');
+  li.className='task draggable';
+  li.textContent=input.value;
+  const xBtn=document.createElement('button');
+  xBtn.textContent='X'; xBtn.onclick=()=>li.remove();
   li.appendChild(xBtn);
   document.getElementById('taskList').appendChild(li);
-  input.value = '';
+  input.value='';
 }
 
-/* ------------------- Flashcards ------------------- */
+/* ---------------- Flashcards ---------------- */
+let flashcardsGroups = [];
+let currentFlashcardGroup = null, currentFlashcardIndex=0, flashcardScore=0, flashcardErrors=[];
 function createFlashcard() {
-  let title = prompt('Titre du groupe de flashcards:');
+  let title=prompt('Titre du groupe de flashcards:');
   if(!title) return;
-  let cards = [];
-  let addMore = true;
-  while(addMore) {
-    let question = prompt('Question:');
-    let answer = prompt('Réponse:');
-    if(question && answer) cards.push({question, answer});
-    addMore = confirm('Ajouter une autre carte?');
+  let cards=[];
+  let addMore=true;
+  while(addMore){
+    let question=prompt('Question:'); let answer=prompt('Réponse:');
+    if(question&&answer) cards.push({question,answer});
+    addMore=confirm('Ajouter une autre carte?');
   }
-  alert('Flashcards enregistrées: ' + cards.length);
+  flashcardsGroups.push({title,cards});
+  renderFlashcardList();
 }
+function renderFlashcardList(){
+  let list=document.getElementById('flashcardList'); list.innerHTML='';
+  flashcardsGroups.forEach((g,i)=>{
+    const div=document.createElement('div');
+    div.textContent=g.title;
+    const playBtn=document.createElement('button'); playBtn.textContent='Jouer';
+    playBtn.onclick=()=>playFlashcards(i);
+    div.appendChild(playBtn); list.appendChild(div);
+  });
+}
+function playFlashcards(index){
+  currentFlashcardGroup=flashcardsGroups[index];
+  currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[];
+  document.getElementById('flashcardList').classList.add('hidden');
+  document.getElementById('flashcardPlay').classList.remove('hidden');
+  document.getElementById('flashcardScoreDiv').classList.add('hidden');
+  showFlashcard();
+}
+function showFlashcard(){
+  const container=document.getElementById('flashcardContainer');
+  container.innerHTML='';
+  if(currentFlashcardIndex>=currentFlashcardGroup.cards.length){
+    document.getElementById('flashcardScore').textContent=flashcardScore;
+    document.getElementById('flashcardScoreDiv').classList.remove('hidden');
+    return;
+  }
+  let card=currentFlashcardGroup.cards[currentFlashcardIndex];
+  let div=document.createElement('div'); div.className='flashcard';
+  let inner=document.createElement('div'); inner.className='flashcard-inner';
+  let front=document.createElement('div'); front.className='flashcard-front'; front.textContent=card.question;
+  let back=document.createElement('div'); back.className='flashcard-back'; back.textContent=card.answer;
+  inner.appendChild(front); inner.appendChild(back); div.appendChild(inner);
+  div.onclick=()=>{ div.classList.toggle('flipped'); };
+  container.appendChild(div);
+  // Drag right=correct, left=wrong (simplifié)
+  div.ondblclick=()=>{
+    let res=prompt('Bien ou Mal ? (b/m)'); 
+    if(res==='b'){flashcardScore++;} else {flashcardErrors.push(card);}
+    currentFlashcardIndex++; showFlashcard();
+  };
+}
+function restartFlashcards(){ currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[]; showFlashcard(); }
+function restartFlashcardsErrors(){ currentFlashcardGroup.cards=flashcardErrors; currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[]; showFlashcard(); }
 
-/* ------------------- Quiz ------------------- */
-function createQuiz() {
-  let title = prompt('Titre du quiz:');
-  if(!title) return;
-  let questions = [];
-  let addMore = true;
-  while(addMore) {
-    let questionText = prompt('Question:');
-    let numChoices = parseInt(prompt('Nombre de réponses (2-4):'));
-    let choices = [];
-    for(let i=0;i<numChoices;i++) choices.push(prompt('Réponse '+(i+1)+':'));
-    let correct = parseInt(prompt('Numéro de la bonne réponse (1-'+numChoices+'):'))-1;
-    questions.push({question: questionText, choices, correct});
-    addMore = confirm('Ajouter une autre question?');
+/* ---------------- Quiz ---------------- */
+let quizzes=[]; let currentQuiz=null; let currentQIndex=0; let quizScore=0; let quizErrors=[];
+function createQuiz(){
+  let title=prompt('Titre du quiz:'); if(!title) return;
+  let questions=[]; let addMore=true;
+  while(addMore){
+    let qText=prompt('Question:'); let numC=parseInt(prompt('Nombre de réponses (2-4):'));
+    let choices=[]; for(let i=0;i<numC;i++) choices.push(prompt('Réponse '+(i+1)+':'));
+    let correct=parseInt(prompt('Numéro de la bonne réponse (1-'+numC+'):'))-1;
+    questions.push({question:qText,choices,correct});
+    addMore=confirm('Ajouter une autre question?');
   }
-  alert('Quiz enregistré: ' + questions.length + ' questions');
+  quizzes.push({title,questions});
+  renderQuizList();
 }
+function renderQuizList(){
+  let list=document.getElementById('quizList'); list.innerHTML='';
+  quizzes.forEach((q,i)=>{
+    let div=document.createElement('div'); div.textContent=q.title;
+    let playBtn=document.createElement('button'); playBtn.textContent='Jouer'; playBtn.onclick=()=>playQuiz(i);
+    div.appendChild(playBtn); list.appendChild(div);
+  });
+}
+function playQuiz(index){
+  currentQuiz=quizzes[index]; currentQIndex=0; quizScore=0; quizErrors=[];
+  document.getElementById('quizList').classList.add('hidden'); document.getElementById('quizPlay').classList.remove('hidden');
+  document.getElementById('quizScore').classList.add('hidden');
+  document.getElementById('retryBtn').classList.add('hidden'); document.getElementById('retryErrorBtn').classList.add('hidden');
+  showQuizQuestion();
+}
+function showQuizQuestion(){
+  let q=document.getElementById('quizQuestion'); let c=document.getElementById('quizChoices');
+  q.innerHTML=''; c.innerHTML='';
+  if(currentQIndex>=currentQuiz.questions.length){
+    document.getElementById('quizScore').textContent=quizScore;
+    document.getElementById('quizScore').classList.remove('hidden');
+    document.getElementById('retryBtn').classList.remove('hidden'); document.getElementById('retryErrorBtn').classList.remove('hidden');
+    return;
+  }
+  let question=currentQuiz.questions[currentQIndex];
+  document.getElementById('quizTitle').textContent=currentQuiz.title;
+  q.textContent=question.question;
+  question.choices.forEach((ch,i)=>{
+    let btn=document.createElement('button'); btn.textContent=ch;
+    btn.onclick=()=>{
+      if(i===question.correct){btn.classList.add('correct'); quizScore++;} else {btn.classList.add('wrong'); quizErrors.push(question);}
+      setTimeout(()=>{ currentQIndex++; showQuizQuestion(); },500);
+    };
+    c.appendChild(btn);
+  });
+}
+function nextQuestion(){ currentQIndex++; showQuizQuestion(); }
+function retryQuiz(){ currentQIndex=0; quizScore=0; quizErrors=[]; showQuizQuestion(); }
+function retryErrors(){ currentQuiz.questions=quizErrors; currentQIndex=0; quizScore=0; quizErrors=[]; showQuizQuestion(); }
 </script>
 </body>
 </html>
