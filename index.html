@@ -5,21 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aide Devoir</title>
 <style>
-  body { font-family: Arial, sans-serif; margin:0; background:#f0f0f0; }
+  body { font-family: Arial, sans-serif; margin:0; background:#e0f7fa; color:#333; }
   .hidden { display: none; }
-  .container { padding:20px; max-width:900px; margin:auto; }
-  button { margin:5px; padding:10px 20px; cursor:pointer; }
-  input[type="text"], input[type="number"] { padding:5px; margin-right:5px; width:70%; }
-  .card, .task { background:#fff; padding:10px; margin:5px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
-  .task-list { list-style:none; padding:0; }
-  .flashcard { cursor:pointer; padding:20px; border-radius:10px; text-align:center; background:#fff; margin:10px 0; perspective:1000px; }
+  .container { padding:20px; max-width:800px; margin:auto; }
+  button { margin:5px; padding:10px 20px; cursor:pointer; border:none; border-radius:6px; background:#0288d1; color:white; font-weight:bold; transition:0.2s; }
+  button:hover { background:#0277bd; }
+  h1,h2,h3 { text-align:center; }
+  input[type="text"], input[type="number"] { padding:5px; margin-right:5px; width:70%; border-radius:4px; border:1px solid #ccc; }
+  .flashcard { cursor:pointer; padding:20px; border-radius:10px; text-align:center; background:#fff; margin:10px 0; perspective:1000px; box-shadow:0 2px 6px rgba(0,0,0,0.2);}
   .flashcard-inner { transition:0.6s; transform-style:preserve-3d; position:relative; }
   .flashcard.flipped .flashcard-inner { transform:rotateY(180deg); }
   .flashcard-front, .flashcard-back { backface-visibility:hidden; position:absolute; width:100%; height:100%; top:0; left:0; display:flex; justify-content:center; align-items:center; font-size:18px; }
-  .flashcard-back { transform:rotateY(180deg); background:#d0ffd0; }
-  .quiz-question { margin:10px 0; }
-  .correct { background-color:#a0ffa0; }
-  .wrong { background-color:#ffa0a0; }
+  .flashcard-back { transform:rotateY(180deg); background:#c8e6c9; }
+  .task-list { list-style:none; padding:0; }
+  .task { background:#fff; padding:10px; margin:5px 0; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .quiz-choice { display:block; margin:5px 0; width:100%; }
+  .correct { background-color:#a5d6a7 !important; }
+  .wrong { background-color:#ef9a9a !important; }
+  select { padding:6px; border-radius:4px; border:1px solid #ccc; }
 </style>
 </head>
 <body>
@@ -35,8 +38,10 @@
 <div class="container hidden" id="quizInterface">
   <button onclick="backToMain()">← Retour</button>
   <h2>Quiz</h2>
-  <h3>Choisir une matière</h3>
-  <div id="quizSubjects"></div>
+  <label>Sélectionner une matière :</label>
+  <select id="quizSubjectSelect" onchange="showQuizzesBySubject(this.value)">
+    <option value="">--Choisir une matière--</option>
+  </select>
   <button onclick="createQuiz()">Créer un nouveau quiz</button>
   <div id="quizList"></div>
   <div id="quizPlay" class="hidden">
@@ -54,8 +59,10 @@
 <div class="container hidden" id="flashcardInterface">
   <button onclick="backToMain()">← Retour</button>
   <h2>Flashcards</h2>
-  <h3>Choisir une matière</h3>
-  <div id="flashcardSubjects"></div>
+  <label>Sélectionner une matière :</label>
+  <select id="flashcardSubjectSelect" onchange="showFlashcardsBySubject(this.value)">
+    <option value="">--Choisir une matière--</option>
+  </select>
   <button onclick="createFlashcard()">Créer un nouveau groupe de flashcards</button>
   <div id="flashcardList"></div>
   <div id="flashcardPlay" class="hidden">
@@ -154,19 +161,14 @@ function addTask(){
 
 /* ---------------- Flashcards ---------------- */
 let flashcardsGroups=[], currentFlashcardGroup=null, currentFlashcardIndex=0, flashcardScore=0, flashcardErrors=[];
+const fixedSubjects=['Math','Français','Science','Histoire'];
 function renderFlashcardSubjects(){
-  const subjects = [...new Set(flashcardsGroups.map(g=>g.matiere))];
-  const container = document.getElementById('flashcardSubjects');
-  container.innerHTML='';
-  subjects.forEach(s=>{
-    const btn=document.createElement('button'); btn.textContent=s;
-    btn.onclick=()=>showFlashcardsBySubject(s);
-    container.appendChild(btn);
-  });
+  const select = document.getElementById('flashcardSubjectSelect'); select.innerHTML='<option value="">--Choisir une matière--</option>';
+  fixedSubjects.forEach(s=>{ const opt=document.createElement('option'); opt.value=s; opt.textContent=s; select.appendChild(opt); });
 }
 function showFlashcardsBySubject(subject){
-  const list = document.getElementById('flashcardList'); list.innerHTML='';
-  flashcardsGroups.filter(g=>g.matiere===subject).forEach((g,i)=>{
+  const list=document.getElementById('flashcardList'); list.innerHTML='';
+  flashcardsGroups.filter(g=>g.matiere===subject).forEach(g=>{
     const div=document.createElement('div'); div.textContent=g.title;
     const playBtn=document.createElement('button'); playBtn.textContent='Jouer';
     playBtn.onclick=()=>playFlashcards(g);
@@ -174,7 +176,7 @@ function showFlashcardsBySubject(subject){
   });
 }
 function createFlashcard(){
-  let matiere=prompt('Nom de la matière:'); if(!matiere) return;
+  let matiere=document.getElementById('flashcardSubjectSelect').value; if(!matiere){alert('Sélectionner une matière'); return;}
   let title=prompt('Titre du groupe de flashcards:'); if(!title) return;
   let cards=[]; let addMore=true;
   while(addMore){
@@ -182,8 +184,7 @@ function createFlashcard(){
     if(question&&answer) cards.push({question,answer});
     addMore=confirm('Ajouter une autre carte?');
   }
-  flashcardsGroups.push({matiere,title,cards});
-  saveAll(); renderFlashcardSubjects();
+  flashcardsGroups.push({matiere,title,cards}); saveAll(); showFlashcardsBySubject(matiere);
 }
 function playFlashcards(group){
   currentFlashcardGroup=group; currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[];
@@ -217,23 +218,20 @@ function restartFlashcardsErrors(){ currentFlashcardGroup.cards=flashcardErrors;
 /* ---------------- Quiz ---------------- */
 let quizzes=[], currentQuiz=null, currentQIndex=0, quizScore=0, quizErrors=[];
 function renderQuizSubjects(){
-  const subjects = [...new Set(quizzes.map(q=>q.matiere))];
-  const container=document.getElementById('quizSubjects'); container.innerHTML='';
-  subjects.forEach(s=>{
-    const btn=document.createElement('button'); btn.textContent=s;
-    btn.onclick=()=>showQuizzesBySubject(s); container.appendChild(btn);
-  });
+  const select=document.getElementById('quizSubjectSelect'); select.innerHTML='<option value="">--Choisir une matière--</option>';
+  fixedSubjects.forEach(s=>{ const opt=document.createElement('option'); opt.value=s; opt.textContent=s; select.appendChild(opt); });
 }
 function showQuizzesBySubject(subject){
   const list=document.getElementById('quizList'); list.innerHTML='';
   quizzes.filter(q=>q.matiere===subject).forEach(q=>{
     const div=document.createElement('div'); div.textContent=q.title;
     const playBtn=document.createElement('button'); playBtn.textContent='Jouer';
-    playBtn.onclick=()=>playQuiz(q); div.appendChild(playBtn); list.appendChild(div);
+    playBtn.onclick=()=>playQuiz(q);
+    div.appendChild(playBtn); list.appendChild(div);
   });
 }
 function createQuiz(){
-  let matiere=prompt('Nom de la matière:'); if(!matiere) return;
+  let matiere=document.getElementById('quizSubjectSelect').value; if(!matiere){alert('Sélectionner une matière'); return;}
   let title=prompt('Titre du quiz:'); if(!title) return;
   let questions=[]; let addMore=true;
   while(addMore){
@@ -244,7 +242,7 @@ function createQuiz(){
     addMore=confirm('Ajouter une autre question?');
   }
   quizzes.push({matiere,title,questions});
-  saveAll(); renderQuizSubjects();
+  saveAll(); showQuizzesBySubject(matiere);
 }
 function playQuiz(q){
   currentQuiz=q; currentQIndex=0; quizScore=0; quizErrors=[];
@@ -265,7 +263,7 @@ function showQuizQuestion(){
   document.getElementById('quizTitle').textContent=currentQuiz.title;
   qElem.textContent=question.question;
   question.choices.forEach((ch,i)=>{
-    let btn=document.createElement('button'); btn.textContent=ch;
+    let btn=document.createElement('button'); btn.textContent=ch; btn.className='quiz-choice';
     btn.onclick=()=>{
       if(i===question.correct){btn.classList.add('correct'); quizScore++;} else {btn.classList.add('wrong'); quizErrors.push(question);}
       setTimeout(()=>{ currentQIndex++; showQuizQuestion(); saveAll(); },500);
