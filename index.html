@@ -6,20 +6,19 @@
 <title>Aide Devoir Complet</title>
 <style>
 body { font-family: Arial,sans-serif; margin:0; padding:0; background:#f0f0f5; }
-.hidden { display:none; }
 .container { padding:20px; min-height:100vh; background-size:cover; background-position:center; }
+.hidden { display:none; }
 button { margin:5px; padding:10px 20px; font-size:16px; cursor:pointer; }
 input[type="text"], input[type="number"] { padding:5px; font-size:16px; }
-.list-item { background:#fff; margin:10px 0; padding:15px; border-radius:10px; display:flex; align-items:center; cursor:grab; }
-.list-item span { flex:1; }
-.list-item button { margin-left:5px; }
+.list-item { background:#fff; margin:10px 0; padding:15px; border-radius:10px; display:flex; align-items:center; justify-content:space-between; cursor:grab; }
 .flashcard { width:300px; height:150px; margin:auto; perspective:1000px; cursor:pointer; position:relative; margin-top:20px; }
 .flashcard .front, .flashcard .back {
   width:100%; height:100%; position:absolute; backface-visibility:hidden;
-  display:flex; justify-content:center; align-items:center; font-size:18px; border-radius:10px; color:#000;
+  display:flex; justify-content:center; align-items:center; font-size:18px; border-radius:10px; color:#000; background:#fff; border:1px solid #ccc;
 }
 .flashcard .back { transform: rotateY(180deg); }
-.option { margin:5px 0; }
+.option-buttons { display:flex; justify-content:space-between; margin-top:10px; }
+.quiz-option { margin:5px 0; }
 .correct { background:#d1ffd1; }
 .wrong { background:#ffd1d1; }
 </style>
@@ -53,7 +52,7 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; }
 <h2>Choisis une matière</h2>
 <div id="flashcard-subjects"></div>
 <div id="flashcard-actions" class="hidden">
-<button onclick="createNewFlashcard()">Créer un nouveau</button>
+<button onclick="createNewFlashcard()">Créer un nouveau set</button>
 <div id="existing-flashcards"></div>
 </div>
 <div id="flashcard-play" class="hidden"></div>
@@ -64,9 +63,7 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; }
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Minuteur Pomodoro</h2>
 <input type="number" id="timer-minutes" placeholder="Minutes" value="25">
-<div>
-<span id="timer-display">25:00</span>
-</div>
+<div><span id="timer-display">25:00</span></div>
 <button onclick="startTimer()">Start</button>
 <button onclick="pauseTimer()">Pause</button>
 </div>
@@ -133,149 +130,37 @@ let tasks = JSON.parse(localStorage.getItem('tasks')||'[]'); tasks.splice(i,1);
 localStorage.setItem('tasks',JSON.stringify(tasks)); loadTasks();
 }
 
-// --- Quiz & Flashcards ---
-let subjects=['Math','Français','Histoire'];
-function loadSubjects(){
-let qs=document.getElementById('quiz-subjects'); let fs=document.getElementById('flashcard-subjects'); qs.innerHTML=''; fs.innerHTML='';
+// --- Subjects ---
+let subjects = ['Math','Français','Histoire','Sciences','Géographie'];
+let currentQuizSubject='', currentFlashSubject='';
+function loadSubjects(){ 
+let qs=document.getElementById('quiz-subjects'); let fs=document.getElementById('flashcard-subjects'); 
+qs.innerHTML=''; fs.innerHTML='';
 subjects.forEach(s=>{
 let b1=document.createElement('button'); b1.textContent=s; b1.onclick=()=>selectQuizSubject(s); qs.appendChild(b1);
 let b2=document.createElement('button'); b2.textContent=s; b2.onclick=()=>selectFlashcardSubject(s); fs.appendChild(b2);
 });
 }
 
-// --- Quiz ---
-let currentQuizSubject='', currentQuiz=[], quizErrors=[];
-function selectQuizSubject(subject){
-currentQuizSubject=subject; document.getElementById('quiz-actions').classList.remove('hidden'); renderExistingQuizzes();
-}
-function renderExistingQuizzes(){
-let div=document.getElementById('existing-quizzes'); div.innerHTML='';
-let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]');
-quizzes.forEach((q,i)=>{
-let d=document.createElement('div'); d.className='list-item';
-d.innerHTML=`<span>${q.title}</span>
-<button onclick="playQuiz(${i})">Jouer</button>
-<button onclick="editQuiz(${i})">Modifier</button>
-<button onclick="deleteQuiz(${i})">Effacer</button>`; div.appendChild(d);
-});
-}
-function createNewQuiz(){
-let title=prompt('Titre du quiz:'); if(!title) return;
-let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]');
-quizzes.push({title,questions:[]}); localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes));
-editQuiz(quizzes.length-1);
-}
-function editQuiz(index){
-let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); let qz=quizzes[index];
-while(true){
-let question=prompt('Écris ta question (ou annuler pour finir):'); if(!question) break;
-let nb=parseInt(prompt('Nombre de choix (2-4)'))||2; let options=[];
-for(let i=0;i<nb;i++){ let opt=prompt('Option '+(i+1)); options.push(opt||''); }
-let correct=parseInt(prompt('Numéro de la bonne réponse (1-'+nb+')'))-1;
-qz.questions.push({question,options,correct});
-}
-quizzes[index]=qz; localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();
-}
-function deleteQuiz(i){
-let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.splice(i,1);
-localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();
-}
-function playQuiz(index, onlyErrors=false){
-let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]');
-currentQuiz = JSON.parse(JSON.stringify(quizzes[index].questions));
-if(onlyErrors && quizErrors.length>0){ currentQuiz = quizErrors; }
-quizErrors=[];
-let container=document.getElementById('quiz-play'); container.classList.remove('hidden'); container.innerHTML='';
-let score=0, qIndex=0;
-function showQuestion(){
-if(qIndex>=currentQuiz.length){
-container.innerHTML=`Quiz terminé! Score: ${score}/${currentQuiz.length} <br>
-${quizErrors.length>0?'<button onclick="playQuiz('+index+',true)">Recommencer erreurs</button>':''}
-<button onclick="playQuiz(${index})">Recommencer</button>
-<button onclick="showInterface('main')">Principal</button>`;
-return;
-}
-let q=currentQuiz[qIndex]; container.innerHTML=`<div class="quiz-question">${q.question}</div>`;
-q.options.forEach((o,i)=>{
-let btn=document.createElement('button'); btn.className='option'; btn.textContent=o;
-btn.onclick=function(){
-if(i===q.correct){ btn.classList.add('correct'); score++; }
-else { btn.classList.add('wrong'); quizErrors.push(q); }
-setTimeout(()=>{qIndex++; showQuestion();},500);
-}; container.appendChild(btn);
-});
-} showQuestion();
-}
+// --- Quiz (inchangé, parfait pour toi) ---
+let currentQuiz=[], quizErrors=[];
+function selectQuizSubject(subject){currentQuizSubject=subject; document.getElementById('quiz-actions').classList.remove('hidden'); renderExistingQuizzes();}
+function renderExistingQuizzes(){let div=document.getElementById('existing-quizzes'); div.innerHTML=''; let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.forEach((q,i)=>{let d=document.createElement('div'); d.className='list-item'; d.innerHTML=`<span>${q.title}</span><button onclick="playQuiz(${i})">Jouer</button><button onclick="editQuiz(${i})">Modifier</button><button onclick="deleteQuiz(${i})">Effacer</button>`; div.appendChild(d);});}
+function createNewQuiz(){let title=prompt('Titre du quiz:'); if(!title) return; let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.push({title,questions:[]}); localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); editQuiz(quizzes.length-1);}
+function editQuiz(index){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); let qz=quizzes[index]; while(true){ let question=prompt('Écris ta question (ou annuler pour finir):'); if(!question) break; let nb=parseInt(prompt('Nombre de choix (2-4)'))||2; let options=[]; for(let i=0;i<nb;i++){ let opt=prompt('Option '+(i+1)); options.push(opt||''); } let correct=parseInt(prompt('Numéro de la bonne réponse (1-'+nb+')'))-1; qz.questions.push({question,options,correct}); } quizzes[index]=qz; localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();}
+function deleteQuiz(i){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.splice(i,1); localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();}
+function playQuiz(index, onlyErrors=false){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); currentQuiz=JSON.parse(JSON.stringify(quizzes[index].questions)); if(onlyErrors && quizErrors.length>0){currentQuiz=quizErrors;} quizErrors=[]; let container=document.getElementById('quiz-play'); container.classList.remove('hidden'); container.innerHTML=''; let score=0, qIndex=0; function showQuestion(){ if(qIndex>=currentQuiz.length){ container.innerHTML=`Quiz terminé! Score: ${score}/${currentQuiz.length} <br>${quizErrors.length>0?'<button onclick="playQuiz('+index+',true)">Recommencer erreurs</button>':''}<button onclick="playQuiz(${index})">Recommencer</button><button onclick="showInterface('main')">Principal</button>`; return; } let q=currentQuiz[qIndex]; container.innerHTML=`<div>${q.question}</div>`; q.options.forEach((o,i)=>{ let btn=document.createElement('button'); btn.className='quiz-option'; btn.textContent=o; btn.onclick=function(){ if(i===q.correct){ btn.classList.add('correct'); score++; } else { btn.classList.add('wrong'); quizErrors.push(q); } setTimeout(()=>{qIndex++; showQuestion();},500); }; container.appendChild(btn); });} showQuestion();}
 
-// --- Flashcards ---
-let currentFlashSubject='', currentFlash=[], flashErrors=[], cIndex = 0;
-function selectFlashcardSubject(subject){
-currentFlashSubject=subject; document.getElementById('flashcard-actions').classList.remove('hidden'); renderExistingFlashcards();
-}
-function renderExistingFlashcards(){
-let div=document.getElementById('existing-flashcards'); div.innerHTML='';
-let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]');
-flashs.forEach((f,i)=>{
-let d=document.createElement('div'); d.className='list-item';
-d.innerHTML=`<span>${f.title}</span>
-<button onclick="playFlashcard(${i})">Jouer</button>
-<button onclick="editFlashcard(${i})">Modifier</button>
-<button onclick="deleteFlashcard(${i})">Effacer</button>`; div.appendChild(d);
-});
-}
-function createNewFlashcard(){
-let title=prompt('Titre du set de flashcards:'); if(!title) return;
-let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]');
-flashs.push({title,cards:[]}); localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs));
-editFlashcard(flashs.length-1);
-}
-function editFlashcard(index){
-let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); let f=flashs[index];
-while(true){
-let q=prompt('Question (ou annuler pour finir)'); if(!q) break;
-let a=prompt('Réponse'); f.cards.push({q,a});
-} flashs[index]=f; localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs)); renderExistingFlashcards();
-}
-function deleteFlashcard(i){
-let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); flashs.splice(i,1);
-localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs)); renderExistingFlashcards();
-}
-function playFlashcard(index, onlyErrors=false){
-let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); currentFlash=JSON.parse(JSON.stringify(flashs[index].cards));
-if(onlyErrors && flashErrors.length>0) currentFlash=flashErrors;
-flashErrors=[]; cIndex=0;
-showFlashCard();
-}
-function showFlashCard(){
-let container=document.getElementById('flashcard-play');
-if(cIndex>=currentFlash.length){
-container.innerHTML=`Fin des cartes! Score: ${currentFlash.length - flashErrors.length}/${currentFlash.length} <br>
-${flashErrors.length>0?'<button onclick="playFlashcard(0,true)">Recommencer erreurs</button>':''}
-<button onclick="playFlashcard(0)">Recommencer</button>
-<button onclick="showInterface('main')">Principal</button>`; return;
-}
-let card=currentFlash[cIndex];
-container.innerHTML = `
-<div class="flashcard" style="background-color:#fff;">
-    <div class="front">${card.q}</div>
-    <div class="back hidden">${card.a}</div>
-</div>
-<div style="display:flex; justify-content:space-between; margin-top:10px;">
-    <button onclick="markCard(false)">✗ Mal</button>
-    <button onclick="markCard(true)">✓ Bien</button>
-</div>
-`;
-let flashDiv = container.querySelector('.flashcard');
-flashDiv.onclick = function(){
-flashDiv.querySelector('.front').classList.toggle('hidden');
-flashDiv.querySelector('.back').classList.toggle('hidden');
-};
-}
-function markCard(isGood){
-if(!isGood) flashErrors.push(currentFlash[cIndex]);
-cIndex++;
-showFlashCard();
-}
+// --- Flashcards (nouveau, 5 matières) ---
+let currentFlash=[], flashErrors=[], cIndex=0;
+function selectFlashcardSubject(subject){currentFlashSubject=subject; document.getElementById('flashcard-actions').classList.remove('hidden'); renderExistingFlashcards();}
+function renderExistingFlashcards(){let div=document.getElementById('existing-flashcards'); div.innerHTML=''; let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); flashs.forEach((f,i)=>{ let d=document.createElement('div'); d.className='list-item'; d.innerHTML=`<span>${f.title}</span><div><button onclick="playFlashcard(${i})">Jouer</button><button onclick="editFlashcard(${i})">Modifier</button><button onclick="deleteFlashcard(${i})">Effacer</button></div>`; div.appendChild(d); });}
+function createNewFlashcard(){ let title=prompt('Titre du set de flashcards:'); if(!title) return; let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); flashs.push({title,cards:[]}); localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs)); editFlashcard(flashs.length-1);}
+function editFlashcard(index){ let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); let f=flashs[index]; while(true){ let q=prompt('Question (ou annuler pour finir)'); if(!q) break; let a=prompt('Réponse'); f.cards.push({q,a}); } flashs[index]=f; localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs)); renderExistingFlashcards();}
+function deleteFlashcard(i){ let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); flashs.splice(i,1); localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs)); renderExistingFlashcards();}
+function playFlashcard(index, onlyErrors=false){ let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); currentFlash=JSON.parse(JSON.stringify(flashs[index].cards)); if(onlyErrors && flashErrors.length>0) currentFlash=flashErrors; flashErrors=[]; cIndex=0; showFlashCard();}
+function showFlashCard(){ let container=document.getElementById('flashcard-play'); container.classList.remove('hidden'); container.innerHTML=''; if(cIndex>=currentFlash.length){ container.innerHTML=`Fin des cartes! Score: ${currentFlash.length - flashErrors.length}/${currentFlash.length} <br>${flashErrors.length>0?'<button onclick="playFlashcard(0,true)">Recommencer erreurs</button>':''}<button onclick="playFlashcard(0)">Recommencer</button><button onclick="showInterface('main')">Principal</button>`; return;} let card=currentFlash[cIndex]; container.innerHTML=`<div class="flashcard"><div class="front">${card.q}</div><div class="back hidden">${card.a}</div></div><div class="option-buttons"><button onclick="markCard(false)">✗ Mal</button><button onclick="markCard(true)">✓ Bien</button></div>`; let flashDiv = container.querySelector('.flashcard'); flashDiv.onclick=function(){ flashDiv.querySelector('.front').classList.toggle('hidden'); flashDiv.querySelector('.back').classList.toggle('hidden');};}
+function markCard(isGood){ if(!isGood) flashErrors.push(currentFlash[cIndex]); cIndex++; showFlashCard(); }
 
 window.onload=function(){ loadTasks(); loadSubjects(); };
 </script>
