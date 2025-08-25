@@ -20,7 +20,6 @@
   .quiz-question { margin:10px 0; }
   .correct { background-color:#a0ffa0; }
   .wrong { background-color:#ffa0a0; }
-  .draggable { cursor:grab; }
 </style>
 </head>
 <body>
@@ -36,6 +35,8 @@
 <div class="container hidden" id="quizInterface">
   <button onclick="backToMain()">← Retour</button>
   <h2>Quiz</h2>
+  <h3>Choisir une matière</h3>
+  <div id="quizSubjects"></div>
   <button onclick="createQuiz()">Créer un nouveau quiz</button>
   <div id="quizList"></div>
   <div id="quizPlay" class="hidden">
@@ -46,7 +47,6 @@
     <div id="quizScore" class="hidden"></div>
     <button id="retryBtn" class="hidden" onclick="retryQuiz()">Recommencer le quiz</button>
     <button id="retryErrorBtn" class="hidden" onclick="retryErrors()">Recommencer seulement les erreurs</button>
-    <button onclick="backToMain()">Menu principal</button>
   </div>
 </div>
 
@@ -54,6 +54,8 @@
 <div class="container hidden" id="flashcardInterface">
   <button onclick="backToMain()">← Retour</button>
   <h2>Flashcards</h2>
+  <h3>Choisir une matière</h3>
+  <div id="flashcardSubjects"></div>
   <button onclick="createFlashcard()">Créer un nouveau groupe de flashcards</button>
   <div id="flashcardList"></div>
   <div id="flashcardPlay" class="hidden">
@@ -63,7 +65,6 @@
       <h3>Score: <span id="flashcardScore"></span></h3>
       <button onclick="restartFlashcards()">Recommencer</button>
       <button onclick="restartFlashcardsErrors()">Recommencer les erreurs</button>
-      <button onclick="backToMain()">Menu principal</button>
     </div>
   </div>
 </div>
@@ -88,21 +89,44 @@
 </div>
 
 <script>
-let currentInterface = 'mainMenu';
-function showInterface(name) {
+/* ---------------- Interface ---------------- */
+let currentInterface='mainMenu';
+function showInterface(name){
   document.getElementById(currentInterface).classList.add('hidden');
   document.getElementById(name+'Interface').classList.remove('hidden');
-  currentInterface = name;
+  currentInterface=name;
 }
-function backToMain() {
+function backToMain(){
+  saveAll();
   document.getElementById(currentInterface).classList.add('hidden');
   document.getElementById('mainMenu').classList.remove('hidden');
-  currentInterface = 'mainMenu';
+  currentInterface='mainMenu';
 }
+
+/* ---------------- LocalStorage ---------------- */
+function saveAll(){
+  localStorage.setItem('quizzes',JSON.stringify(quizzes));
+  localStorage.setItem('flashcardsGroups',JSON.stringify(flashcardsGroups));
+  localStorage.setItem('tasks',JSON.stringify(Array.from(document.querySelectorAll('#taskList li')).map(li=>li.firstChild.textContent)));
+}
+function loadAll(){
+  quizzes=JSON.parse(localStorage.getItem('quizzes')||'[]');
+  flashcardsGroups=JSON.parse(localStorage.getItem('flashcardsGroups')||'[]');
+  let tasks=JSON.parse(localStorage.getItem('tasks')||'[]');
+  tasks.forEach(t=>{
+    const li=document.createElement('li'); li.className='task';
+    li.textContent=t;
+    const xBtn=document.createElement('button'); xBtn.textContent='X'; xBtn.onclick=()=>li.remove();
+    li.appendChild(xBtn); document.getElementById('taskList').appendChild(li);
+  });
+}
+window.onload=()=>{
+  loadAll(); renderQuizSubjects(); renderFlashcardSubjects();
+};
 
 /* ---------------- Pomodoro ---------------- */
 let pomodoroTimer; let pomodoroTime=0;
-function startPomodoro() {
+function startPomodoro(){
   clearInterval(pomodoroTimer);
   let minutes=parseInt(document.getElementById('pomodoroMinutes').value)||25;
   pomodoroTime=minutes*60;
@@ -116,60 +140,62 @@ function startPomodoro() {
 function pausePomodoro(){ clearInterval(pomodoroTimer); }
 
 /* ---------------- Todo List ---------------- */
-function addTask() {
+function addTask(){
   let input=document.getElementById('newTaskInput');
   if(input.value.trim()==='') return;
-  const li=document.createElement('li');
-  li.className='task draggable';
+  const li=document.createElement('li'); li.className='task';
   li.textContent=input.value;
-  const xBtn=document.createElement('button');
-  xBtn.textContent='X'; xBtn.onclick=()=>li.remove();
+  const xBtn=document.createElement('button'); xBtn.textContent='X'; xBtn.onclick=()=>li.remove();
   li.appendChild(xBtn);
   document.getElementById('taskList').appendChild(li);
   input.value='';
+  saveAll();
 }
 
 /* ---------------- Flashcards ---------------- */
-let flashcardsGroups = [];
-let currentFlashcardGroup = null, currentFlashcardIndex=0, flashcardScore=0, flashcardErrors=[];
-function createFlashcard() {
-  let title=prompt('Titre du groupe de flashcards:');
-  if(!title) return;
-  let cards=[];
-  let addMore=true;
+let flashcardsGroups=[], currentFlashcardGroup=null, currentFlashcardIndex=0, flashcardScore=0, flashcardErrors=[];
+function renderFlashcardSubjects(){
+  const subjects = [...new Set(flashcardsGroups.map(g=>g.matiere))];
+  const container = document.getElementById('flashcardSubjects');
+  container.innerHTML='';
+  subjects.forEach(s=>{
+    const btn=document.createElement('button'); btn.textContent=s;
+    btn.onclick=()=>showFlashcardsBySubject(s);
+    container.appendChild(btn);
+  });
+}
+function showFlashcardsBySubject(subject){
+  const list = document.getElementById('flashcardList'); list.innerHTML='';
+  flashcardsGroups.filter(g=>g.matiere===subject).forEach((g,i)=>{
+    const div=document.createElement('div'); div.textContent=g.title;
+    const playBtn=document.createElement('button'); playBtn.textContent='Jouer';
+    playBtn.onclick=()=>playFlashcards(g);
+    div.appendChild(playBtn); list.appendChild(div);
+  });
+}
+function createFlashcard(){
+  let matiere=prompt('Nom de la matière:'); if(!matiere) return;
+  let title=prompt('Titre du groupe de flashcards:'); if(!title) return;
+  let cards=[]; let addMore=true;
   while(addMore){
     let question=prompt('Question:'); let answer=prompt('Réponse:');
     if(question&&answer) cards.push({question,answer});
     addMore=confirm('Ajouter une autre carte?');
   }
-  flashcardsGroups.push({title,cards});
-  renderFlashcardList();
+  flashcardsGroups.push({matiere,title,cards});
+  saveAll(); renderFlashcardSubjects();
 }
-function renderFlashcardList(){
-  let list=document.getElementById('flashcardList'); list.innerHTML='';
-  flashcardsGroups.forEach((g,i)=>{
-    const div=document.createElement('div');
-    div.textContent=g.title;
-    const playBtn=document.createElement('button'); playBtn.textContent='Jouer';
-    playBtn.onclick=()=>playFlashcards(i);
-    div.appendChild(playBtn); list.appendChild(div);
-  });
-}
-function playFlashcards(index){
-  currentFlashcardGroup=flashcardsGroups[index];
-  currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[];
-  document.getElementById('flashcardList').classList.add('hidden');
-  document.getElementById('flashcardPlay').classList.remove('hidden');
+function playFlashcards(group){
+  currentFlashcardGroup=group; currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[];
+  document.getElementById('flashcardList').classList.add('hidden'); document.getElementById('flashcardPlay').classList.remove('hidden');
   document.getElementById('flashcardScoreDiv').classList.add('hidden');
   showFlashcard();
 }
 function showFlashcard(){
-  const container=document.getElementById('flashcardContainer');
-  container.innerHTML='';
+  const container=document.getElementById('flashcardContainer'); container.innerHTML='';
   if(currentFlashcardIndex>=currentFlashcardGroup.cards.length){
     document.getElementById('flashcardScore').textContent=flashcardScore;
-    document.getElementById('flashcardScoreDiv').classList.remove('hidden');
-    return;
+    document.getElementById('flashcardScoreDiv').classList.remove('hidden'); return;
   }
   let card=currentFlashcardGroup.cards[currentFlashcardIndex];
   let div=document.createElement('div'); div.className='flashcard';
@@ -178,20 +204,36 @@ function showFlashcard(){
   let back=document.createElement('div'); back.className='flashcard-back'; back.textContent=card.answer;
   inner.appendChild(front); inner.appendChild(back); div.appendChild(inner);
   div.onclick=()=>{ div.classList.toggle('flipped'); };
-  container.appendChild(div);
-  // Drag right=correct, left=wrong (simplifié)
   div.ondblclick=()=>{
     let res=prompt('Bien ou Mal ? (b/m)'); 
     if(res==='b'){flashcardScore++;} else {flashcardErrors.push(card);}
-    currentFlashcardIndex++; showFlashcard();
+    currentFlashcardIndex++; showFlashcard(); saveAll();
   };
+  container.appendChild(div);
 }
 function restartFlashcards(){ currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[]; showFlashcard(); }
 function restartFlashcardsErrors(){ currentFlashcardGroup.cards=flashcardErrors; currentFlashcardIndex=0; flashcardScore=0; flashcardErrors=[]; showFlashcard(); }
 
 /* ---------------- Quiz ---------------- */
-let quizzes=[]; let currentQuiz=null; let currentQIndex=0; let quizScore=0; let quizErrors=[];
+let quizzes=[], currentQuiz=null, currentQIndex=0, quizScore=0, quizErrors=[];
+function renderQuizSubjects(){
+  const subjects = [...new Set(quizzes.map(q=>q.matiere))];
+  const container=document.getElementById('quizSubjects'); container.innerHTML='';
+  subjects.forEach(s=>{
+    const btn=document.createElement('button'); btn.textContent=s;
+    btn.onclick=()=>showQuizzesBySubject(s); container.appendChild(btn);
+  });
+}
+function showQuizzesBySubject(subject){
+  const list=document.getElementById('quizList'); list.innerHTML='';
+  quizzes.filter(q=>q.matiere===subject).forEach(q=>{
+    const div=document.createElement('div'); div.textContent=q.title;
+    const playBtn=document.createElement('button'); playBtn.textContent='Jouer';
+    playBtn.onclick=()=>playQuiz(q); div.appendChild(playBtn); list.appendChild(div);
+  });
+}
 function createQuiz(){
+  let matiere=prompt('Nom de la matière:'); if(!matiere) return;
   let title=prompt('Titre du quiz:'); if(!title) return;
   let questions=[]; let addMore=true;
   while(addMore){
@@ -201,43 +243,34 @@ function createQuiz(){
     questions.push({question:qText,choices,correct});
     addMore=confirm('Ajouter une autre question?');
   }
-  quizzes.push({title,questions});
-  renderQuizList();
+  quizzes.push({matiere,title,questions});
+  saveAll(); renderQuizSubjects();
 }
-function renderQuizList(){
-  let list=document.getElementById('quizList'); list.innerHTML='';
-  quizzes.forEach((q,i)=>{
-    let div=document.createElement('div'); div.textContent=q.title;
-    let playBtn=document.createElement('button'); playBtn.textContent='Jouer'; playBtn.onclick=()=>playQuiz(i);
-    div.appendChild(playBtn); list.appendChild(div);
-  });
-}
-function playQuiz(index){
-  currentQuiz=quizzes[index]; currentQIndex=0; quizScore=0; quizErrors=[];
+function playQuiz(q){
+  currentQuiz=q; currentQIndex=0; quizScore=0; quizErrors=[];
   document.getElementById('quizList').classList.add('hidden'); document.getElementById('quizPlay').classList.remove('hidden');
-  document.getElementById('quizScore').classList.add('hidden');
-  document.getElementById('retryBtn').classList.add('hidden'); document.getElementById('retryErrorBtn').classList.add('hidden');
+  document.getElementById('quizScore').classList.add('hidden'); document.getElementById('retryBtn').classList.add('hidden'); document.getElementById('retryErrorBtn').classList.add('hidden');
   showQuizQuestion();
 }
 function showQuizQuestion(){
-  let q=document.getElementById('quizQuestion'); let c=document.getElementById('quizChoices');
-  q.innerHTML=''; c.innerHTML='';
+  let qElem=document.getElementById('quizQuestion'); let cElem=document.getElementById('quizChoices');
+  qElem.innerHTML=''; cElem.innerHTML='';
   if(currentQIndex>=currentQuiz.questions.length){
     document.getElementById('quizScore').textContent=quizScore;
     document.getElementById('quizScore').classList.remove('hidden');
     document.getElementById('retryBtn').classList.remove('hidden'); document.getElementById('retryErrorBtn').classList.remove('hidden');
-    return;
+    saveAll(); return;
   }
   let question=currentQuiz.questions[currentQIndex];
   document.getElementById('quizTitle').textContent=currentQuiz.title;
-  q.textContent=question.question;
+  qElem.textContent=question.question;
   question.choices.forEach((ch,i)=>{
     let btn=document.createElement('button'); btn.textContent=ch;
     btn.onclick=()=>{
       if(i===question.correct){btn.classList.add('correct'); quizScore++;} else {btn.classList.add('wrong'); quizErrors.push(question);}
-      setTimeout(()=>{ currentQIndex++; showQuizQuestion(); },500);
+      setTimeout(()=>{ currentQIndex++; showQuizQuestion(); saveAll(); },500);
     };
-    c.appendChild(btn);
+    cElem.appendChild(btn);
   });
 }
 function nextQuestion(){ currentQIndex++; showQuizQuestion(); }
