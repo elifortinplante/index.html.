@@ -3,136 +3,152 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aide Devoirs</title>
+<title>Aide Devoir</title>
 <style>
-body { font-family: Arial, sans-serif; margin:0; padding:20px; text-align:center; background:#f4f4f9; }
-h1 { color:#333; }
-.menu button { margin:10px; padding:15px; font-size:18px; border:none; border-radius:8px; cursor:pointer; background:#4CAF50; color:white; }
-section { display:none; padding:20px; }
-.active { display:block; }
-.flashcard, .quizCard { border:2px solid #333; border-radius:10px; padding:20px; margin:20px auto; width:300px; background:white; cursor:pointer; }
-.choice-buttons button, #flashResult button, .miniFile button { margin:5px; padding:10px; font-size:16px; }
-.matiereItem { margin:10px 0; cursor:pointer; text-decoration: underline; color: blue; }
+  body { font-family: Arial, sans-serif; margin: 0; background: #f0f0f0; }
+  .hidden { display: none; }
+  .container { padding: 20px; max-width: 900px; margin: auto; }
+  button { margin: 5px; padding: 10px 20px; cursor: pointer; }
+  .card, .task { background: white; padding: 10px; margin: 5px 0; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+  .task-list { list-style: none; padding: 0; }
+  input[type="text"] { padding: 5px; margin-right: 5px; width: 70%; }
+  .flashcard { cursor: pointer; padding: 20px; border-radius: 10px; text-align: center; background: #fff; margin: 10px 0; perspective: 1000px; }
+  .flashcard-inner { transition: transform 0.6s; transform-style: preserve-3d; position: relative; }
+  .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+  .flashcard-front, .flashcard-back { backface-visibility: hidden; position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; justify-content: center; align-items: center; font-size: 18px; }
+  .flashcard-back { transform: rotateY(180deg); background: #d0ffd0; }
+  .quiz-question { margin: 10px 0; }
+  .correct { background-color: #a0ffa0; }
+  .wrong { background-color: #ffa0a0; }
+  .draggable { cursor: grab; }
 </style>
 </head>
 <body>
-<h1>Aide Devoirs</h1>
-<div class="menu">
-  <button onclick="showSection('pomodoro')">Méthode Pomodoro</button>
-  <button onclick="showSection('flashcards')">Créer des Flashcards</button>
-  <button onclick="showSection('quiz')">Créer un Quiz</button>
-  <button onclick="showSection('list')">Liste</button>
+<div class="container" id="mainMenu">
+  <h1>Aide Devoir</h1>
+  <button onclick="showInterface('quiz')">Quiz</button>
+  <button onclick="showInterface('flashcard')">Flashcards</button>
+  <button onclick="showInterface('pomodoro')">Minuteur Pomodoro</button>
+  <button onclick="showInterface('todo')">Liste de Tâches</button>
 </div>
-<p id="totalPoints">Points cumulés : 0</p>
 
-<section id="pomodoro">
-  <h2>Pomodoro</h2>
-  <p id="timer">25:00</p>
-  <button onclick="startPomodoro()">Démarrer</button>
-  <button onclick="resetPomodoro()">Réinitialiser</button>
-  <button onclick="showSection('')">Retour</button>
-</section>
+<!-- Quiz Interface -->
+<div class="container hidden" id="quizInterface">
+  <button onclick="backToMain()">← Retour</button>
+  <h2>Choisir une matière</h2>
+  <div id="quizSubjects"></div>
+  <button onclick="createQuiz()">Créer un nouveau quiz</button>
+  <div id="quizList"></div>
+</div>
 
-<section id="flashcards">
-  <h2>Flashcards</h2>
-  <div id="matiereFlashcards"></div>
-  <button onclick="showSection('')">Retour</button>
-</section>
+<!-- Flashcard Interface -->
+<div class="container hidden" id="flashcardInterface">
+  <button onclick="backToMain()">← Retour</button>
+  <h2>Choisir une matière</h2>
+  <div id="flashcardSubjects"></div>
+  <button onclick="createFlashcard()">Créer un nouveau groupe de flashcards</button>
+  <div id="flashcardList"></div>
+</div>
 
-<section id="quiz">
-  <h2>Quiz</h2>
-  <div id="matiereQuiz"></div>
-  <button onclick="showSection('')">Retour</button>
-</section>
+<!-- Pomodoro Timer -->
+<div class="container hidden" id="pomodoroInterface">
+  <button onclick="backToMain()">← Retour</button>
+  <h2>Minuteur Pomodoro</h2>
+  <input type="number" id="pomodoroMinutes" placeholder="Minutes" min="1">
+  <button onclick="startPomodoro()">Start</button>
+  <button onclick="pausePomodoro()">Pause</button>
+  <h3 id="pomodoroDisplay">00:00</h3>
+</div>
 
-<section id="list">
-  <h2>Liste de tâches</h2>
-  <input id="taskInput" placeholder="Nouvelle tâche">
+<!-- Todo List -->
+<div class="container hidden" id="todoInterface">
+  <button onclick="backToMain()">← Retour</button>
+  <h2>Liste de Tâches</h2>
+  <input type="text" id="newTaskInput" placeholder="Nouvelle tâche">
   <button onclick="addTask()">Ajouter</button>
-  <ul id="taskList"></ul>
-  <button onclick="showSection('')">Retour</button>
-</section>
+  <ul id="taskList" class="task-list"></ul>
+</div>
 
 <script>
-// ---------------- Navigation ----------------
-function showSection(id){document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));if(id)document.getElementById(id).classList.add('active');}
+let currentInterface = 'mainMenu';
 
-// ---------------- Compteur global ----------------
-function getTotalPoints(){return parseInt(localStorage.getItem('totalPoints')||'0');}
-function setTotalPoints(v){localStorage.setItem('totalPoints',v);document.getElementById('totalPoints').textContent='Points cumulés : '+v;}
-function addPoints(p){let t=getTotalPoints();t+=p;setTotalPoints(t);}
-document.addEventListener('DOMContentLoaded',()=>{setTotalPoints(getTotalPoints()); loadMatieres(); renderTasks();});
-
-// ---------------- Pomodoro ----------------
-let timer,timeLeft=1500; function startPomodoro(){clearInterval(timer);timeLeft=1500;timer=setInterval(()=>{if(timeLeft<=0){clearInterval(timer);alert('Pause !');return;}timeLeft--;updateDisplay();},1000);} function resetPomodoro(){clearInterval(timer);timeLeft=1500;updateDisplay();} function updateDisplay(){let m=Math.floor(timeLeft/60),s=timeLeft%60;document.getElementById('timer').textContent=`${m}:${s<10?'0':''}${s}`;}
-
-// ---------------- Matières fixes ----------------
-const MATIERES=['Math','Géo','Science','PPO','Anglais','Français'];
-let matieres=JSON.parse(localStorage.getItem('matieres')||'{}');
-MATIERES.forEach(m=>{if(!matieres[m]) matieres[m]={flashcards:[],quiz:[]};});
-localStorage.setItem('matieres',JSON.stringify(matieres));
-
-function loadMatieres(){['flashcards','quiz'].forEach(type=>{
-  let div=document.getElementById('matiere'+capitalize(type)); div.innerHTML='';
-  MATIERES.forEach(m=>{
-    let d=document.createElement('div'); d.className='matiereItem'; d.textContent=m; d.onclick=()=>openMatiere(type,m); div.appendChild(d);
-  });
- });}
-function capitalize(s){return s.charAt(0).toUpperCase()+s.slice(1);}
-
-// ---------------- Flashcards / Quiz Mini-Fichiers ----------------
-function openMatiere(type,nom){
-  let data=matieres[nom][type];
-  let area=document.getElementById('matiere'+capitalize(type)); area.innerHTML=`<h3>${nom}</h3>`;
-  let btnNew=document.createElement('button'); btnNew.textContent='Créer un nouveau'; btnNew.onclick=()=>createMiniFile(type,nom); area.appendChild(btnNew);
-  data.forEach((f,i)=>{
-    let div=document.createElement('div'); div.className='miniFile'; div.textContent=f.titre;
-    let play=document.createElement('button'); play.textContent='Jouer'; play.onclick=()=>playMiniFile(type,nom,i);
-    let edit=document.createElement('button'); edit.textContent='Modifier'; edit.onclick=()=>editMiniFile(type,nom,i);
-    let del=document.createElement('button'); del.textContent='Supprimer'; del.onclick=()=>{if(confirm('Supprimer ?')){data.splice(i,1);saveMatieres(); openMatiere(type,nom);}};
-    div.appendChild(play); div.appendChild(edit); div.appendChild(del); area.appendChild(div);
-  });
+function showInterface(name) {
+  document.getElementById(currentInterface).classList.add('hidden');
+  document.getElementById(name + 'Interface').classList.remove('hidden');
+  currentInterface = name;
 }
 
-function createMiniFile(type,nom){
-  let titre=prompt('Titre ?'); if(!titre) return;
-  if(type=='flashcards'){ matieres[nom][type].push({titre,cartes:[]});}
-  else{ matieres[nom][type].push({titre,questions:[]});}
-  saveMatieres(); openMatiere(type,nom);
+// Retour au menu principal
+function backToMain() {
+  document.getElementById(currentInterface).classList.add('hidden');
+  document.getElementById('mainMenu').classList.remove('hidden');
+  currentInterface = 'mainMenu';
 }
 
-function editMiniFile(type,nom,index){
-  let mf=matieres[nom][type][index];
-  let t=prompt('Titre ?',mf.titre); if(t) mf.titre=t;
-  if(type=='flashcards'){ editFlashcards(mf);} else {editQuiz(mf);}
-  saveMatieres(); openMatiere(type,nom);
+/* ------------------- Pomodoro ------------------- */
+let pomodoroTimer;
+let pomodoroTime = 0;
+function startPomodoro() {
+  clearInterval(pomodoroTimer);
+  let minutes = parseInt(document.getElementById('pomodoroMinutes').value) || 25;
+  pomodoroTime = minutes * 60;
+  pomodoroTimer = setInterval(() => {
+    let m = Math.floor(pomodoroTime / 60);
+    let s = pomodoroTime % 60;
+    document.getElementById('pomodoroDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if(pomodoroTime <= 0) clearInterval(pomodoroTimer);
+    pomodoroTime--;
+  }, 1000);
+}
+function pausePomodoro() { clearInterval(pomodoroTimer); }
+
+/* ------------------- Todo List ------------------- */
+function addTask() {
+  let input = document.getElementById('newTaskInput');
+  if(input.value.trim() === '') return;
+  const li = document.createElement('li');
+  li.className = 'task draggable';
+  li.textContent = input.value;
+  const xBtn = document.createElement('button');
+  xBtn.textContent = 'X';
+  xBtn.onclick = () => li.remove();
+  li.appendChild(xBtn);
+  document.getElementById('taskList').appendChild(li);
+  input.value = '';
 }
 
-function playMiniFile(type,nom,index){
-  let mf=matieres[nom][type][index];
-  if(type=='flashcards'){ playFlashcards(mf);} else{ playQuiz(mf);}
-}
-
-// ---------------- Flashcards ----------------
-function editFlashcards(f){
-  let done=false;
-  while(!done){
-    let action=prompt('Ajouter=1, Modifier=2, Supprimer=3, Quitter=0');
-    if(action=='0'){done=true; break;}
-    else if(action=='1'){ let q=prompt('Question ?'), a=prompt('Réponse ?'); if(q&&a) f.cartes.push({q,a});}
-    else if(action=='2'){ let idx=prompt('Numéro de la carte à modifier (0..'+(f.cartes.length-1)+')'); idx=parseInt(idx); if(f.cartes[idx]){ let q=prompt('Question ?',f.cartes[idx].q),a=prompt('Réponse ?',f.cartes[idx].a); if(q) f.cartes[idx].q=q; if(a) f.cartes[idx].a=a;}}
-    else if(action=='3'){ let idx=prompt('Numéro de la carte à supprimer (0..'+(f.cartes.length-1)+')'); idx=parseInt(idx); if(f.cartes[idx]) f.cartes.splice(idx,1);}
+/* ------------------- Flashcards ------------------- */
+function createFlashcard() {
+  let title = prompt('Titre du groupe de flashcards:');
+  if(!title) return;
+  let cards = [];
+  let addMore = true;
+  while(addMore) {
+    let question = prompt('Question:');
+    let answer = prompt('Réponse:');
+    if(question && answer) cards.push({question, answer});
+    addMore = confirm('Ajouter une autre carte?');
   }
+  alert('Flashcards enregistrées: ' + cards.length);
 }
 
-function playFlashcards(f){
-  let idx=0,errors=[],correct=[];
-  let area=document.getElementById('matiereFlashcards'); area.innerHTML='';
-  let flashBox=document.createElement('div'); flashBox.className='flashcard'; area.appendChild(flashBox);
-  let btnNon=document.createElement('button'); btnNon.textContent='Non Réussi'; btnNon.style.float='left';
-  let btnOui=document.createElement('button'); btnOui.textContent='Réussi'; btnOui.style.float='right';
-  area.appendChild(btnNon); area.appendChild(btnOui);
-  function nextFlash(){if(idx<f.cartes.length){flashBox.textContent=f.cartes[idx].q;}else{
-    flashBox.textContent='Terminé !'; btnNon.style.display='none'; btnOui.style.display='none';
-    let res=document.createElement('div'); area.appendChild(res);
-    res.innerHTML=`<p>Bonnes réponses: ${correct.length} | Erreurs: ${
+/* ------------------- Quiz ------------------- */
+function createQuiz() {
+  let title = prompt('Titre du quiz:');
+  if(!title) return;
+  let questions = [];
+  let addMore = true;
+  while(addMore) {
+    let questionText = prompt('Question:');
+    let numChoices = parseInt(prompt('Nombre de réponses (2-4):'));
+    let choices = [];
+    for(let i=0;i<numChoices;i++) choices.push(prompt('Réponse '+(i+1)+':'));
+    let correct = parseInt(prompt('Numéro de la bonne réponse (1-'+numChoices+'):'))-1;
+    questions.push({question: questionText, choices, correct});
+    addMore = confirm('Ajouter une autre question?');
+  }
+  alert('Quiz enregistré: ' + questions.length + ' questions');
+}
+</script>
+</body>
+</html>
