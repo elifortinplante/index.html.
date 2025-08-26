@@ -70,7 +70,14 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 <div class="container hidden" id="flashcards-interface" style="background-image:url('https://source.unsplash.com/1600x900/?cards');">
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Flashcards</h2>
-<button onclick="showFlashCreate()">Créer un nouveau set</button>
+<div id="subject-select">
+  <h3>Choisis une matière :</h3>
+  <button onclick="selectSubject('Math')">Math</button>
+  <button onclick="selectSubject('Français')">Français</button>
+  <button onclick="selectSubject('Histoire')">Histoire</button>
+  <button onclick="selectSubject('Sciences')">Sciences</button>
+  <button onclick="selectSubject('Géographie')">Géographie</button>
+</div>
 <div id="flashcard-list"></div>
 <div id="flashcard-create" class="hidden"></div>
 <div id="flashcard-play"></div>
@@ -161,11 +168,9 @@ localStorage.setItem('tasks',JSON.stringify(tasks)); loadTasks();
 }
 loadTasks();
 
-// --- Quiz et Flashcards données ---
+// --- Quiz ---
 let quizzes = JSON.parse(localStorage.getItem('quizzes')||'[]');
-let flashcards = JSON.parse(localStorage.getItem('flashcards')||'[]');
 
-// --- Gestion Quiz ---
 function showQuizCreate(){
 let div = document.getElementById('quiz-create'); div.innerHTML=''; div.classList.remove('hidden');
 let title = document.createElement('input'); title.placeholder='Titre du quiz';
@@ -214,16 +219,23 @@ div.appendChild(b);
 showQ();
 }
 
-// --- Gestion Flashcards ---
-let subjects = ['Math','Francais','Histoire','Sciences','Geographie'];
+// --- Flashcards par matière ---
+let flashcards = JSON.parse(localStorage.getItem('flashcards')||'{}');
+let currentSubject = '';
+function selectSubject(subject){
+currentSubject = subject;
+if(!flashcards[subject]) flashcards[subject]=[];
+document.getElementById('subject-select').classList.add('hidden');
+renderFlashList();
+}
 function showFlashCreate(){
 let div = document.getElementById('flashcard-create'); div.innerHTML=''; div.classList.remove('hidden');
 let title = document.createElement('input'); title.placeholder='Titre du set';
 let addCard = document.createElement('button'); addCard.textContent='Ajouter une carte';
-let cards=[];
+let cards = [];
 addCard.onclick=()=>{ cards.push({q:'',a:''}); renderFlashCards(div,cards); };
 let save = document.createElement('button'); save.textContent='Enregistrer';
-save.onclick=()=>{ if(!title.value) return alert('Titre requis'); flashcards.push({title:title.value,cards}); localStorage.setItem('flashcards',JSON.stringify(flashcards)); div.classList.add('hidden'); renderFlashList(); };
+save.onclick=()=>{ if(!title.value) return alert('Titre requis'); flashcards[currentSubject].push({title:title.value,cards}); localStorage.setItem('flashcards',JSON.stringify(flashcards)); div.classList.add('hidden'); renderFlashList(); };
 div.appendChild(title); div.appendChild(addCard); div.appendChild(save);
 renderFlashCards(div,cards);
 }
@@ -238,11 +250,13 @@ block.appendChild(qInput); block.appendChild(aInput); container.appendChild(bloc
 }
 function renderFlashList(){
 let div = document.getElementById('flashcard-list'); div.innerHTML='';
-flashcards.forEach((f,i)=>{
+flashcards[currentSubject].forEach((f,i)=>{
 let btnPlay = document.createElement('button'); btnPlay.textContent=f.title; 
 btnPlay.onclick=()=>{ playFlashcards(f); };
 div.appendChild(btnPlay);
 });
+let btnCreate = document.createElement('button'); btnCreate.textContent='Créer un nouveau set'; btnCreate.onclick=showFlashCreate;
+div.appendChild(btnCreate);
 }
 function playFlashcards(set){
 let div = document.getElementById('flashcard-play'); div.innerHTML=''; 
@@ -269,8 +283,8 @@ div.appendChild(btnDiv);
 showCard();
 }
 
+// --- Initialisation ---
 renderQuizList();
-renderFlashList();
 </script>
 
 </body>
