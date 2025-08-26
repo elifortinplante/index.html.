@@ -46,10 +46,6 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 
 /* To-do List */
 #new-task { width:70%; margin-right:10px; }
-
-/* Fenêtre Félicitations */
-#congrats { position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000; }
-#congrats img { max-width:80%; max-height:80%; border-radius:15px; }
 </style>
 </head>
 <body>
@@ -107,8 +103,8 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 </div>
 
 <!-- Fenêtre Félicitations -->
-<div id="congrats" class="hidden">
-    <img src="https://bradaronson.com/wp-content/uploads/2013/10/happy.jpg" alt="Félicitations !">
+<div id="congrats" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;z-index:1000;">
+    <img src="https://bradaronson.com/wp-content/uploads/2013/10/happy.jpg" alt="Félicitations !" style="max-width:80%;max-height:80%;border-radius:15px;">
 </div>
 
 <script>
@@ -179,8 +175,8 @@ let b2=document.createElement('button'); b2.textContent=s; b2.onclick=()=>select
 // --- Félicitations ---
 function showCongrats(){
     const congrats = document.getElementById('congrats');
-    congrats.classList.remove('hidden');
-    setTimeout(()=>{ congrats.classList.add('hidden'); }, 10000); // 10 secondes
+    congrats.style.display = 'flex';
+    setTimeout(()=>{ congrats.style.display = 'none'; }, 10000);
 }
 
 // --- Quiz ---
@@ -190,4 +186,10 @@ function renderExistingQuizzes(){let div=document.getElementById('existing-quizz
 function createNewQuiz(){let title=prompt('Titre du quiz:'); if(!title) return; let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.push({title,questions:[]}); localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); editQuiz(quizzes.length-1);}
 function editQuiz(index){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); let qz=quizzes[index]; while(true){ let question=prompt('Écris ta question (ou annuler pour finir):'); if(!question) break; let nb=parseInt(prompt('Nombre de choix (2-4)'))||2; let options=[]; for(let i=0;i<nb;i++){ let opt=prompt('Option '+(i+1)); options.push(opt||''); } let correct=parseInt(prompt('Numéro de la bonne réponse (1-'+nb+')'))-1; qz.questions.push({question,options,correct}); } quizzes[index]=qz; localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();}
 function deleteQuiz(i){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.splice(i,1); localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();}
-function playQuiz(index, onlyErrors=false){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); currentQuiz=JSON.parse(JSON.stringify(quizzes[index].questions)); if(onlyErrors && quizErrors.length>0){currentQuiz=quizErrors;} quizErrors=[]; let container=document.getElementById('quiz-play'); container.classList.remove('hidden'); container.innerHTML=''; let score=0, qIndex=0; function showQuestion(){ if(qIndex>=currentQuiz.length){ if(score===currentQuiz.length) showCongrats(); container.innerHTML=`Quiz terminé! Score: ${score}/${currentQuiz.length} <br>${quizErrors.length>0?'<button onclick="playQuiz('+index+',true)">Recommencer erreurs</button>':''}<button onclick="playQuiz(${index})">Recommencer</button><button onclick="showInterface('main')">Principal</button>`; return; } let q=currentQuiz[qIndex]; container.innerHTML=`<div>${q.question}</div>`; q.options.forEach((o,i)=>{ let btn=document.createElement('button'); btn.className='quiz-option'; btn.textContent=o; btn.onclick=function(){ if(i===q.correct){ btn.classList.add('correct'); score++; } else { btn.classList.add('wrong'); quizErrors.push(q); } setTimeout(()=>{qIndex
+function playQuiz(index, onlyErrors=false){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); currentQuiz=JSON.parse(JSON.stringify(quizzes[index].questions)); if(onlyErrors && quizErrors.length>0){currentQuiz=quizErrors;} quizErrors=[]; let container=document.getElementById('quiz-play'); container.classList.remove('hidden'); container.innerHTML=''; let score=0, qIndex=0; function showQuestion(){ if(qIndex>=currentQuiz.length){ if(score===currentQuiz.length) showCongrats(); container.innerHTML=`Quiz terminé! Score: ${score}/${currentQuiz.length} <br>${quizErrors.length>0?'<button onclick="playQuiz('+index+',true)">Recommencer erreurs</button>':''}<button onclick="playQuiz(${index})">Recommencer</button><button onclick="showInterface('main')">Principal</button>`; return; } let q=currentQuiz[qIndex]; container.innerHTML=`<div>${q.question}</div>`; q.options.forEach((o,i)=>{ let btn=document.createElement('button'); btn.className='quiz-option'; btn.textContent=o; btn.onclick=function(){ if(i===q.correct){ btn.classList.add('correct'); score++; } else { btn.classList.add('wrong'); quizErrors.push(q); } setTimeout(()=>{qIndex++; showQuestion();},800); }; container.appendChild(btn);});} showQuestion();}
+loadSubjects();
+loadTasks();
+</script>
+
+</body>
+</html>
