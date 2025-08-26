@@ -235,3 +235,46 @@ let block = document.createElement('div'); block.className='card-block';
 let qInput = document.createElement('input'); qInput.placeholder='Question'; qInput.value=c.q; qInput.oninput=(e)=>{c.q=e.target.value;};
 let aInput = document.createElement('input'); aInput.placeholder='Réponse'; aInput.value=c.a; aInput.oninput=(e)=>{c.a=e.target.value;};
 block.appendChild(qInput); block.appendChild(aInput); container.appendChild
+block.appendChild(aInput); container.appendChild(block);
+});
+}
+
+function renderFlashList(){
+let div = document.getElementById('flashcard-list'); div.innerHTML='';
+flashcards.forEach((f,i)=>{
+let btnPlay = document.createElement('button'); btnPlay.textContent=f.title; 
+btnPlay.onclick=()=>{ playFlashcards(f); };
+div.appendChild(btnPlay);
+});
+}
+
+function playFlashcards(set){
+let div = document.getElementById('flashcard-play'); div.innerHTML=''; 
+let index=0,score=0;
+function showCard(){
+if(index>=set.cards.length){ div.innerHTML=`<h2>Score: ${score}/${set.cards.length}</h2>`; if(score===set.cards.length) showCongrats(); return; }
+let c = set.cards[index]; 
+let cardDiv = document.createElement('div'); cardDiv.className='flashcard';
+let inner = document.createElement('div'); inner.className='flashcard-inner';
+let front = document.createElement('div'); front.className='front'; front.textContent=c.q;
+let back = document.createElement('div'); back.className='back'; back.textContent=c.a;
+inner.appendChild(front); inner.appendChild(back); cardDiv.appendChild(inner);
+cardDiv.onclick=()=>{ cardDiv.classList.toggle('flipped'); };
+div.appendChild(cardDiv);
+
+let btnDiv = document.createElement('div'); btnDiv.className='option-buttons';
+let good = document.createElement('button'); good.textContent='Bien'; good.className='good';
+good.onclick=()=>{ score++; index++; div.innerHTML=''; showCard(); };
+let bad = document.createElement('button'); bad.textContent='Mal'; bad.className='bad';
+bad.onclick=()=>{ index++; div.innerHTML=''; showCard(); };
+btnDiv.appendChild(bad); btnDiv.appendChild(good);
+div.appendChild(btnDiv);
+}
+showCard();
+}
+
+renderFlashList();
+</script>
+
+</body>
+</html>
