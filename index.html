@@ -47,6 +47,7 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 </head>
 <body>
 
+<!-- Interface principale -->
 <div class="container" id="main-interface" style="background-image:url('https://source.unsplash.com/1600x900/?study');">
 <h1>Aide Devoir</h1>
 <button onclick="showInterface('quiz')">Quiz</button>
@@ -55,32 +56,126 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 <button onclick="showInterface('todolist')">Liste</button>
 </div>
 
+<!-- Quiz Interface -->
+<div class="container hidden" id="quiz-interface" style="background-image:url('https://source.unsplash.com/1600x900/?notebook');">
+<button onclick="showInterface('main')">← Principal</button>
+<h2>Quiz</h2>
+<div id="quiz-subjects">
+  <h3>Choisis une matière :</h3>
+  <button onclick="selectQuizSubject('Math')">Math</button>
+  <button onclick="selectQuizSubject('Français')">Français</button>
+  <button onclick="selectQuizSubject('Histoire')">Histoire</button>
+  <button onclick="selectQuizSubject('Sciences')">Sciences</button>
+  <button onclick="selectQuizSubject('Géographie')">Géographie</button>
+  <button onclick="selectQuizSubject('Anglais')">Anglais</button>
+</div>
+<div id="quiz-list"></div>
+<div id="quiz-create" class="hidden"></div>
+<div id="quiz-play"></div>
+</div>
+
+<!-- Flashcards Interface -->
+<div class="container hidden" id="flashcards-interface" style="background-image:url('https://source.unsplash.com/1600x900/?cards');">
+<button onclick="showInterface('main')">← Principal</button>
+<h2>Flashcards</h2>
+<div id="flashcard-subjects">
+  <h3>Choisis une matière :</h3>
+  <button onclick="selectFlashSubject('Math')">Math</button>
+  <button onclick="selectFlashSubject('Français')">Français</button>
+  <button onclick="selectFlashSubject('Histoire')">Histoire</button>
+  <button onclick="selectFlashSubject('Sciences')">Sciences</button>
+  <button onclick="selectFlashSubject('Géographie')">Géographie</button>
+  <button onclick="selectFlashSubject('Anglais')">Anglais</button>
+</div>
+<div id="flashcard-list"></div>
+<div id="flashcard-create" class="hidden"></div>
+<div id="flashcard-play"></div>
+</div>
+
+<!-- Timer Interface -->
+<div class="container hidden" id="timer-interface" style="background-image:url('https://source.unsplash.com/1600x900/?clock');">
+<button onclick="showInterface('main')">← Principal</button>
+<h2>Minuteur Pomodoro</h2>
+<input type="number" id="timer-minutes" placeholder="Minutes" value="25">
+<div><span id="timer-display">25:00</span></div>
+<button onclick="startTimer()">Start</button>
+<button onclick="pauseTimer()">Pause</button>
+</div>
+
+<!-- To-do List Interface -->
+<div class="container hidden" id="todolist-interface" style="background-image:url('https://source.unsplash.com/1600x900/?notes');">
+<button onclick="showInterface('main')">← Principal</button>
+<h2>Liste de tâches</h2>
+<input type="text" id="new-task" placeholder="Nouvelle tâche">
+<button onclick="addTask()">Ajouter</button>
+<div id="task-list"></div>
+</div>
+
+<!-- Félicitations fullscreen -->
 <div id="congrats">
-<img src="https://bradaronson.com/wp-content/uploads/2013/10/happy.jpg" alt="Félicitations !">
+    <img src="https://bradaronson.com/wp-content/uploads/2013/10/happy.jpg" alt="Félicitations !">
 </div>
 
 <script>
 // --- Interfaces ---
+let currentInterface = 'main';
 function showInterface(name){
 ['main','quiz','flashcards','timer','todolist'].forEach(i=>{
 document.getElementById(i+'-interface')?.classList.add('hidden');
 });
 document.getElementById(name+'-interface')?.classList.remove('hidden');
+currentInterface = name;
 }
 
 // --- Félicitations ---
-function showCongrats(){ const c=document.getElementById('congrats'); c.style.display='flex'; setTimeout(()=>{c.style.display='none';},10000); }
+function showCongrats(){
+    const congrats = document.getElementById('congrats');
+    congrats.style.display='flex';
+    setTimeout(()=>{ congrats.style.display='none'; },10000);
+}
 
 // --- Timer ---
-let timerInterval, remainingTime=25*60;
-function updateTimerDisplay(){ let m=Math.floor(remainingTime/60), s=remainingTime%60; document.getElementById('timer-display').textContent=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; }
-function startTimer(){ remainingTime=parseInt(document.getElementById('timer-minutes').value||25)*60; updateTimerDisplay(); clearInterval(timerInterval); timerInterval=setInterval(()=>{if(remainingTime>0){remainingTime--;updateTimerDisplay()} else clearInterval(timerInterval);},1000); }
+let timerInterval, remainingTime = 25*60;
+function updateTimerDisplay(){
+let m=Math.floor(remainingTime/60), s=remainingTime%60;
+document.getElementById('timer-display').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+function startTimer(){
+remainingTime = parseInt(document.getElementById('timer-minutes').value||25)*60;
+updateTimerDisplay();
+clearInterval(timerInterval);
+timerInterval = setInterval(()=>{if(remainingTime>0){remainingTime--; updateTimerDisplay();} else clearInterval(timerInterval);},1000);
+}
 function pauseTimer(){ clearInterval(timerInterval); }
 
 // --- To-do List ---
-function loadTasks(){ let tasks=JSON.parse(localStorage.getItem('tasks')||'[]'); let container=document.getElementById('task-list'); if(!container) return; container.innerHTML=''; tasks.forEach((t,i)=>{ let div=document.createElement('div'); div.className='list-item'; div.draggable=true; div.innerHTML=`<span>${t}</span><button onclick="deleteTask(${i})">X</button>`; div.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain',i); }); div.addEventListener('dragover', e=>{ e.preventDefault(); }); div.addEventListener('drop', e=>{ let from=parseInt(e.dataTransfer.getData('text')), to=i; tasks.splice(to,0,tasks.splice(from,1)[0]); localStorage.setItem('tasks',JSON.stringify(tasks)); loadTasks(); }); container.appendChild(div); }); }
-function addTask(){ let input=document.getElementById('new-task'); if(!input || !input.value) return; let tasks=JSON.parse(localStorage.getItem('tasks')||'[]'); tasks.push(input.value); localStorage.setItem('tasks',JSON.stringify(tasks)); input.value=''; loadTasks(); }
-function deleteTask(i){ let tasks=JSON.parse(localStorage.getItem('tasks')||'[]'); tasks.splice(i,1); localStorage.setItem('tasks',JSON.stringify(tasks)); loadTasks(); }
+function loadTasks(){
+let tasks = JSON.parse(localStorage.getItem('tasks')||'[]');
+let container = document.getElementById('task-list'); if(!container) return;
+container.innerHTML='';
+tasks.forEach((t,i)=>{
+let div=document.createElement('div'); div.className='list-item';
+div.draggable=true; div.innerHTML=`<span>${t}</span><button onclick="deleteTask(${i})">X</button>`;
+div.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', i); });
+div.addEventListener('dragover', e=>{ e.preventDefault(); });
+div.addEventListener('drop', e=>{
+let from = parseInt(e.dataTransfer.getData('text'));
+let to = i;
+tasks.splice(to,0,tasks.splice(from,1)[0]);
+localStorage.setItem('tasks',JSON.stringify(tasks)); loadTasks();
+});
+container.appendChild(div);
+});
+}
+function addTask(){
+let input=document.getElementById('new-task'); if(!input || !input.value) return;
+let tasks = JSON.parse(localStorage.getItem('tasks')||'[]'); tasks.push(input.value);
+localStorage.setItem('tasks',JSON.stringify(tasks)); input.value=''; loadTasks();
+}
+function deleteTask(i){
+let tasks = JSON.parse(localStorage.getItem('tasks')||'[]'); tasks.splice(i,1);
+localStorage.setItem('tasks',JSON.stringify(tasks)); loadTasks();
+}
 loadTasks();
 </script>
 
