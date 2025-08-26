@@ -21,13 +21,6 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 }
 .flashcard .back { transform: rotateY(180deg); }
 
-/* Couleurs matières */
-.flash-Math { background:#4CAF50; }
-.flash-Francais { background:#2196F3; }
-.flash-Histoire { background:#FF9800; }
-.flash-Sciences { background:#9C27B0; }
-.flash-Geographie { background:#F44336; }
-
 /* Boutons Bien/Mal */
 .option-buttons { display:flex; justify-content:space-between; margin-top:20px; max-width:300px; margin-left:auto; margin-right:auto; }
 .option-buttons button { flex:1; margin:5px; font-weight:bold; }
@@ -66,17 +59,21 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 <!-- Quiz Interface -->
 <div class="container hidden" id="quiz-interface" style="background-image:url('https://source.unsplash.com/1600x900/?notebook');">
 <button onclick="showInterface('main')">← Principal</button>
-<h2>Choisis une matière</h2>
+<h2>Quiz - Choisis une matière ou créer un nouveau</h2>
 <div id="quiz-subjects"></div>
 <div id="quiz-play"></div>
+<button id="create-quiz-btn">Créer un nouveau quiz</button>
+<div id="quiz-create" class="hidden"></div>
 </div>
 
 <!-- Flashcards Interface -->
 <div class="container hidden" id="flashcards-interface" style="background-image:url('https://source.unsplash.com/1600x900/?cards');">
 <button onclick="showInterface('main')">← Principal</button>
-<h2>Choisis une matière</h2>
+<h2>Flashcards - Choisis une matière ou créer un nouveau</h2>
 <div id="flashcard-subjects"></div>
 <div id="flashcard-play"></div>
+<button id="create-flash-btn">Créer un nouveau set</button>
+<div id="flashcard-create" class="hidden"></div>
 </div>
 
 <!-- Timer Interface -->
@@ -118,7 +115,7 @@ currentInterface = name;
 function showCongrats(){
     const congrats = document.getElementById('congrats');
     congrats.style.display='flex';
-    setTimeout(()=>{ congrats.style.display = 'none'; },10000);
+    setTimeout(()=>{ congrats.style.display='none'; },10000);
 }
 
 // --- Timer ---
@@ -162,73 +159,10 @@ function deleteTask(i){
 let tasks = JSON.parse(localStorage.getItem('tasks')||'[]'); tasks.splice(i,1);
 localStorage.setItem('tasks',JSON.stringify(tasks)); loadTasks();
 }
-
-// --- Flashcards ---
-let flashSubjects = ['Math','Francais','Histoire','Sciences','Geographie'];
-let flashcardsData = {
-'Math': [{q:'2+2?', a:'4'}, {q:'5x3?', a:'15'}],
-'Francais': [{q:'Synonyme rapide?', a:'vite'}, {q:'Antonyme froid?', a:'chaud'}],
-'Histoire': [{q:'Découverte Amérique?', a:'1492'}, {q:'Révolution française?', a:'1789'}],
-'Sciences': [{q:'Eau à 100°C?', a:'vapeur'}, {q:'Planète rouge?', a:'Mars'}],
-'Geographie': [{q:'Capitale France?', a:'Paris'}, {q:'Plus grand océan?', a:'Pacifique'}]
-};
-let currentFlashSubject = '';
-let currentCards = [], cardIndex=0, correctCount=0;
-let flashDiv = document.getElementById('flashcard-subjects');
-flashSubjects.forEach(sub=>{
-let btn=document.createElement('button'); btn.textContent=sub; btn.onclick=()=>{ selectFlash(sub); }; flashDiv.appendChild(btn);
-});
-function selectFlash(sub){
-currentFlashSubject=sub;
-currentCards=JSON.parse(JSON.stringify(flashcardsData[sub]));
-cardIndex=0; correctCount=0;
-showFlashCard();
-}
-function showFlashCard(){
-let container=document.getElementById('flashcard-play'); container.innerHTML='';
-if(cardIndex>=currentCards.length){
-container.innerHTML=`<h2>Score: ${correctCount}/${currentCards.length}</h2>`;
-if(correctCount===currentCards.length) showCongrats();
-return;
-}
-let data=currentCards[cardIndex];
-let cardDiv=document.createElement('div'); cardDiv.className='flashcard flash-'+currentFlashSubject;
-let inner=document.createElement('div'); inner.className='flashcard-inner';
-let front=document.createElement('div'); front.className='front'; front.textContent=data.q;
-let back=document.createElement('div'); back.className='back'; back.textContent=data.a;
-inner.appendChild(front); inner.appendChild(back); cardDiv.appendChild(inner);
-cardDiv.onclick=()=>{ cardDiv.classList.toggle('flipped'); };
-container.appendChild(cardDiv);
-let btnDiv=document.createElement('div'); btnDiv.className='option-buttons';
-let goodBtn=document.createElement('button'); goodBtn.textContent='Bien'; goodBtn.className='good';
-goodBtn.onclick=(e)=>{ e.stopPropagation(); correctCount++; cardIndex++; showFlashCard(); };
-let badBtn=document.createElement('button'); badBtn.textContent='Mal'; badBtn.className='bad';
-badBtn.onclick=(e)=>{ e.stopPropagation(); cardIndex++; showFlashCard(); };
-btnDiv.appendChild(badBtn); btnDiv.appendChild(goodBtn);
-container.appendChild(btnDiv);
-}
-
-// --- Quiz simplifié exemple ---
-let quizSubjects = ['Math','Francais','Histoire','Sciences','Geographie'];
-let quizData = {
-'Math': [{q:'2+2?', options:['3','4','5'], correct:1}],
-'Francais': [{q:'Synonyme rapide?', options:['vite','lent','rapide'], correct:0}],
-'Histoire': [{q:'Découverte Amérique?', options:['1492','1500','1600'], correct:0}],
-'Sciences': [{q:'Eau à 100°C?', options:['vapeur','glace','liquide'], correct:0}],
-'Geographie': [{q:'Capitale France?', options:['Lyon','Paris','Marseille'], correct:1}]
-};
-let quizDiv=document.getElementById('quiz-subjects');
-quizSubjects.forEach(sub=>{ let btn=document.createElement('button'); btn.textContent=sub; btn.onclick=()=>{ playQuiz(sub); }; quizDiv.appendChild(btn); });
-function playQuiz(sub){
-let questions=quizData[sub]; let container=document.getElementById('quiz-play'); container.innerHTML=''; container.classList.remove('hidden'); let score=0; let qIndex=0;
-function showQuestion(){ if(qIndex>=questions.length){ container.innerHTML=`<h2>Score: ${score}/${questions.length}</h2>`; if(score===questions.length) showCongrats(); return;}
-let q=questions[qIndex]; container.innerHTML=`<div>${q.q}</div>`; q.options.forEach((o,i)=>{ let b=document.createElement('button'); b.textContent=o; b.className='quiz-option'; b.onclick=function(){ if(i===q.correct){ b.classList.add('correct'); score++; } else b.classList.add('wrong'); setTimeout(()=>{ qIndex++; showQuestion(); },800); }; container.appendChild(b); });
-}
-showQuestion();
-}
-
-// Charger les tâches To-do List au démarrage
 loadTasks();
+
+// --- Quiz et Flashcards création et lecture ---
+// Ici, tu peux compléter le JS pour ajouter création/modification dynamique des quiz et flashcards
 </script>
 
 </body>
