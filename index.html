@@ -46,6 +46,10 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 
 /* To-do List */
 #new-task { width:70%; margin-right:10px; }
+
+/* Fenêtre Félicitations */
+#congrats { position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000; }
+#congrats img { max-width:80%; max-height:80%; border-radius:15px; }
 </style>
 </head>
 <body>
@@ -100,6 +104,11 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 <input type="text" id="new-task" placeholder="Nouvelle tâche">
 <button onclick="addTask()">Ajouter</button>
 <div id="task-list"></div>
+</div>
+
+<!-- Fenêtre Félicitations -->
+<div id="congrats" class="hidden">
+    <img src="https://bradaronson.com/wp-content/uploads/2013/10/happy.jpg" alt="Félicitations !">
 </div>
 
 <script>
@@ -167,32 +176,18 @@ let b2=document.createElement('button'); b2.textContent=s; b2.onclick=()=>select
 });
 }
 
-// --- Quiz (inchangé, parfait pour toi) ---
+// --- Félicitations ---
+function showCongrats(){
+    const congrats = document.getElementById('congrats');
+    congrats.classList.remove('hidden');
+    setTimeout(()=>{ congrats.classList.add('hidden'); }, 10000); // 10 secondes
+}
+
+// --- Quiz ---
 let currentQuiz=[], quizErrors=[];
 function selectQuizSubject(subject){currentQuizSubject=subject; document.getElementById('quiz-actions').classList.remove('hidden'); renderExistingQuizzes();}
 function renderExistingQuizzes(){let div=document.getElementById('existing-quizzes'); div.innerHTML=''; let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.forEach((q,i)=>{let d=document.createElement('div'); d.className='list-item'; d.innerHTML=`<span>${q.title}</span><button onclick="playQuiz(${i})">Jouer</button><button onclick="editQuiz(${i})">Modifier</button><button onclick="deleteQuiz(${i})">Effacer</button>`; div.appendChild(d);});}
 function createNewQuiz(){let title=prompt('Titre du quiz:'); if(!title) return; let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.push({title,questions:[]}); localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); editQuiz(quizzes.length-1);}
 function editQuiz(index){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); let qz=quizzes[index]; while(true){ let question=prompt('Écris ta question (ou annuler pour finir):'); if(!question) break; let nb=parseInt(prompt('Nombre de choix (2-4)'))||2; let options=[]; for(let i=0;i<nb;i++){ let opt=prompt('Option '+(i+1)); options.push(opt||''); } let correct=parseInt(prompt('Numéro de la bonne réponse (1-'+nb+')'))-1; qz.questions.push({question,options,correct}); } quizzes[index]=qz; localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();}
 function deleteQuiz(i){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.splice(i,1); localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();}
-function playQuiz(index, onlyErrors=false){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); currentQuiz=JSON.parse(JSON.stringify(quizzes[index].questions)); if(onlyErrors && quizErrors.length>0){currentQuiz=quizErrors;} quizErrors=[]; let container=document.getElementById('quiz-play'); container.classList.remove('hidden'); container.innerHTML=''; let score=0, qIndex=0; function showQuestion(){ if(qIndex>=currentQuiz.length){ container.innerHTML=`Quiz terminé! Score: ${score}/${currentQuiz.length} <br>${quizErrors.length>0?'<button onclick="playQuiz('+index+',true)">Recommencer erreurs</button>':''}<button onclick="playQuiz(${index})">Recommencer</button><button onclick="showInterface('main')">Principal</button>`; return; } let q=currentQuiz[qIndex]; container.innerHTML=`<div>${q.question}</div>`; q.options.forEach((o,i)=>{ let btn=document.createElement('button'); btn.className='quiz-option'; btn.textContent=o; btn.onclick=function(){ if(i===q.correct){ btn.classList.add('correct'); score++; } else { btn.classList.add('wrong'); quizErrors.push(q); } setTimeout(()=>{qIndex++; showQuestion();},500); }; container.appendChild(btn); });} showQuestion();}
-
-// --- Flashcards 3D ---
-let currentFlash=[], flashErrors=[], cIndex=0;
-function selectFlashcardSubject(subject){currentFlashSubject=subject; document.getElementById('flashcard-actions').classList.remove('hidden'); renderExistingFlashcards();}
-function renderExistingFlashcards(){let div=document.getElementById('existing-flashcards'); div.innerHTML=''; let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); flashs.forEach((f,i)=>{ let d=document.createElement('div'); d.className='list-item'; d.innerHTML=`<span>${f.title}</span><div><button onclick="playFlashcard(${i})">Jouer</button><button onclick="editFlashcard(${i})">Modifier</button><button onclick="deleteFlashcard(${i})">Effacer</button></div>`; div.appendChild(d); });}
-function createNewFlashcard(){ let title=prompt('Titre du set de flashcards:'); if(!title) return; let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); flashs.push({title,cards:[]}); localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs)); editFlashcard(flashs.length-1);}
-function editFlashcard(index){ let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); let f=flashs[index]; while(true){ let q=prompt('Question (ou annuler pour finir)'); if(!q) break; let a=prompt('Réponse'); f.cards.push({q,a}); } flashs[index]=f; localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs)); renderExistingFlashcards();}
-function deleteFlashcard(i){ let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); flashs.splice(i,1); localStorage.setItem('flash-'+currentFlashSubject,JSON.stringify(flashs)); renderExistingFlashcards();}
-function playFlashcard(index, onlyErrors=false){ let flashs=JSON.parse(localStorage.getItem('flash-'+currentFlashSubject)||'[]'); currentFlash=JSON.parse(JSON.stringify(flashs[index].cards)); if(onlyErrors && flashErrors.length>0) currentFlash=flashErrors; flashErrors=[]; cIndex=0; showFlashCard();}
-function showFlashCard(){ 
-let container=document.getElementById('flashcard-play'); container.classList.remove('hidden'); container.innerHTML=''; 
-if(cIndex>=currentFlash.length){ container.innerHTML=`Fin des cartes! Score: ${currentFlash.length - flashErrors.length}/${currentFlash.length} <br>${flashErrors.length>0?'<button onclick="playFlashcard(0,true)">Recommencer erreurs</button>':''}<button onclick="playFlashcard(0)">Recommencer</button><button onclick="showInterface('main')">Principal</button>`; return;}
-let card=currentFlash[cIndex]; 
-let matClass = 'flash-'+currentFlashSubject.replace('é','e');
-container.innerHTML=`<div class="flashcard ${matClass}" onclick="this.classList.toggle('flipped')"><div class="flashcard-inner"><div class="front">${card.q}</div><div class="back">${card.a}</div></div></div><div class="option-buttons"><button class="bad" onclick="markCard(false)">✗ Mal</button><button class="good" onclick="markCard(true)">✓ Bien</button></div>`;}
-function markCard(isGood){ if(!isGood) flashErrors.push(currentFlash[cIndex]); cIndex++; showFlashCard(); }
-
-window.onload=function(){ loadTasks(); loadSubjects(); };
-</script>
-</body>
-</html>
+function playQuiz(index, onlyErrors=false){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); currentQuiz=JSON.parse(JSON.stringify(quizzes[index].questions)); if(onlyErrors && quizErrors.length>0){currentQuiz=quizErrors;} quizErrors=[]; let container=document.getElementById('quiz-play'); container.classList.remove('hidden'); container.innerHTML=''; let score=0, qIndex=0; function showQuestion(){ if(qIndex>=currentQuiz.length){ if(score===currentQuiz.length) showCongrats(); container.innerHTML=`Quiz terminé! Score: ${score}/${currentQuiz.length} <br>${quizErrors.length>0?'<button onclick="playQuiz('+index+',true)">Recommencer erreurs</button>':''}<button onclick="playQuiz(${index})">Recommencer</button><button onclick="showInterface('main')">Principal</button>`; return; } let q=currentQuiz[qIndex]; container.innerHTML=`<div>${q.question}</div>`; q.options.forEach((o,i)=>{ let btn=document.createElement('button'); btn.className='quiz-option'; btn.textContent=o; btn.onclick=function(){ if(i===q.correct){ btn.classList.add('correct'); score++; } else { btn.classList.add('wrong'); quizErrors.push(q); } setTimeout(()=>{qIndex
