@@ -213,7 +213,6 @@ div.appendChild(b);
 }
 showQ();
 }
-renderQuizList();
 
 // --- Gestion Flashcards ---
 let subjects = ['Math','Francais','Histoire','Sciences','Geographie'];
@@ -234,11 +233,9 @@ cards.forEach((c,i)=>{
 let block = document.createElement('div'); block.className='card-block';
 let qInput = document.createElement('input'); qInput.placeholder='Question'; qInput.value=c.q; qInput.oninput=(e)=>{c.q=e.target.value;};
 let aInput = document.createElement('input'); aInput.placeholder='Réponse'; aInput.value=c.a; aInput.oninput=(e)=>{c.a=e.target.value;};
-block.appendChild(qInput); block.appendChild(aInput); container.appendChild
-block.appendChild(aInput); container.appendChild(block);
+block.appendChild(qInput); block.appendChild(aInput); container.appendChild(block);
 });
 }
-
 function renderFlashList(){
 let div = document.getElementById('flashcard-list'); div.innerHTML='';
 flashcards.forEach((f,i)=>{
@@ -247,7 +244,6 @@ btnPlay.onclick=()=>{ playFlashcards(f); };
 div.appendChild(btnPlay);
 });
 }
-
 function playFlashcards(set){
 let div = document.getElementById('flashcard-play'); div.innerHTML=''; 
 let index=0,score=0;
@@ -273,6 +269,7 @@ div.appendChild(btnDiv);
 showCard();
 }
 
+renderQuizList();
 renderFlashList();
 </script>
 
