@@ -59,21 +59,21 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 <!-- Quiz Interface -->
 <div class="container hidden" id="quiz-interface" style="background-image:url('https://source.unsplash.com/1600x900/?notebook');">
 <button onclick="showInterface('main')">← Principal</button>
-<h2>Quiz - Choisis une matière ou créer un nouveau</h2>
-<div id="quiz-subjects"></div>
-<div id="quiz-play"></div>
-<button id="create-quiz-btn">Créer un nouveau quiz</button>
+<h2>Quiz</h2>
+<button onclick="showQuizCreate()">Créer un nouveau quiz</button>
+<div id="quiz-list"></div>
 <div id="quiz-create" class="hidden"></div>
+<div id="quiz-play"></div>
 </div>
 
 <!-- Flashcards Interface -->
 <div class="container hidden" id="flashcards-interface" style="background-image:url('https://source.unsplash.com/1600x900/?cards');">
 <button onclick="showInterface('main')">← Principal</button>
-<h2>Flashcards - Choisis une matière ou créer un nouveau</h2>
-<div id="flashcard-subjects"></div>
-<div id="flashcard-play"></div>
-<button id="create-flash-btn">Créer un nouveau set</button>
+<h2>Flashcards</h2>
+<button onclick="showFlashCreate()">Créer un nouveau set</button>
+<div id="flashcard-list"></div>
 <div id="flashcard-create" class="hidden"></div>
+<div id="flashcard-play"></div>
 </div>
 
 <!-- Timer Interface -->
@@ -161,9 +161,77 @@ localStorage.setItem('tasks',JSON.stringify(tasks)); loadTasks();
 }
 loadTasks();
 
-// --- Quiz et Flashcards création et lecture ---
-// Ici, tu peux compléter le JS pour ajouter création/modification dynamique des quiz et flashcards
-</script>
+// --- Quiz et Flashcards données ---
+let quizzes = JSON.parse(localStorage.getItem('quizzes')||'[]');
+let flashcards = JSON.parse(localStorage.getItem('flashcards')||'[]');
 
-</body>
-</html>
+// --- Gestion Quiz ---
+function showQuizCreate(){
+let div = document.getElementById('quiz-create'); div.innerHTML=''; div.classList.remove('hidden');
+let title = document.createElement('input'); title.placeholder='Titre du quiz';
+let addQ = document.createElement('button'); addQ.textContent='Ajouter une question';
+let questions = [];
+addQ.onclick=()=>{ let q={question:'',options:['',''],correct:0}; questions.push(q); renderQuizQuestions(div,questions); };
+let save = document.createElement('button'); save.textContent='Enregistrer'; 
+save.onclick=()=>{ if(!title.value) return alert('Titre requis'); quizzes.push({title:title.value,questions}); localStorage.setItem('quizzes',JSON.stringify(quizzes)); div.classList.add('hidden'); renderQuizList(); };
+div.appendChild(title); div.appendChild(addQ); div.appendChild(save);
+renderQuizQuestions(div,questions);
+}
+function renderQuizQuestions(container,questions){
+let existing = container.querySelectorAll('.question-block'); existing.forEach(e=>e.remove());
+questions.forEach((q,i)=>{
+let block = document.createElement('div'); block.className='question-block';
+let inputQ = document.createElement('input'); inputQ.placeholder='Question'; inputQ.value=q.question;
+inputQ.oninput=(e)=>{q.question=e.target.value;};
+let optionDiv = document.createElement('div');
+for(let j=0;j<4;j++){
+let inp = document.createElement('input'); inp.placeholder='Option '+(j+1); inp.value=q.options[j]||'';
+inp.oninput=(e)=>{ q.options[j]=e.target.value; };
+let radio = document.createElement('input'); radio.type='radio'; radio.name='correct'+i; radio.checked=(q.correct===j); radio.onchange=()=>{q.correct=j;};
+optionDiv.appendChild(inp); optionDiv.appendChild(radio);
+}
+block.appendChild(inputQ); block.appendChild(optionDiv); container.appendChild(block);
+});
+}
+function renderQuizList(){
+let div = document.getElementById('quiz-list'); div.innerHTML='';
+quizzes.forEach((q,i)=>{
+let btnPlay = document.createElement('button'); btnPlay.textContent=q.title; btnPlay.onclick=()=>{ playQuiz(q); };
+div.appendChild(btnPlay);
+});
+}
+function playQuiz(quiz){
+let div = document.getElementById('quiz-play'); div.innerHTML=''; let index=0,score=0;
+function showQ(){
+if(index>=quiz.questions.length){ div.innerHTML=`<h2>Score: ${score}/${quiz.questions.length}</h2>`; if(score===quiz.questions.length) showCongrats(); return; }
+let q = quiz.questions[index]; div.innerHTML=`<h3>${q.question}</h3>`;
+q.options.forEach((opt,i)=>{
+let b = document.createElement('button'); b.textContent=opt; b.className='quiz-option';
+b.onclick=()=>{ if(i===q.correct){b.classList.add('correct'); score++;} else b.classList.add('wrong'); setTimeout(()=>{ index++; showQ(); },500); };
+div.appendChild(b);
+});
+}
+showQ();
+}
+renderQuizList();
+
+// --- Gestion Flashcards ---
+let subjects = ['Math','Francais','Histoire','Sciences','Geographie'];
+function showFlashCreate(){
+let div = document.getElementById('flashcard-create'); div.innerHTML=''; div.classList.remove('hidden');
+let title = document.createElement('input'); title.placeholder='Titre du set';
+let addCard = document.createElement('button'); addCard.textContent='Ajouter une carte';
+let cards=[];
+addCard.onclick=()=>{ cards.push({q:'',a:''}); renderFlashCards(div,cards); };
+let save = document.createElement('button'); save.textContent='Enregistrer';
+save.onclick=()=>{ if(!title.value) return alert('Titre requis'); flashcards.push({title:title.value,cards}); localStorage.setItem('flashcards',JSON.stringify(flashcards)); div.classList.add('hidden'); renderFlashList(); };
+div.appendChild(title); div.appendChild(addCard); div.appendChild(save);
+renderFlashCards(div,cards);
+}
+function renderFlashCards(container,cards){
+let existing = container.querySelectorAll('.card-block'); existing.forEach(e=>e.remove());
+cards.forEach((c,i)=>{
+let block = document.createElement('div'); block.className='card-block';
+let qInput = document.createElement('input'); qInput.placeholder='Question'; qInput.value=c.q; qInput.oninput=(e)=>{c.q=e.target.value;};
+let aInput = document.createElement('input'); aInput.placeholder='Réponse'; aInput.value=c.a; aInput.oninput=(e)=>{c.a=e.target.value;};
+block.appendChild(qInput); block.appendChild(aInput); container.appendChild
