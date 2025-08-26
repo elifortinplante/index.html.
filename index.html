@@ -3,38 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aide Devoir Complet Stylé</title>
+<title>Aide Devoir Complet</title>
 <style>
-body { font-family: Arial,sans-serif; margin:0; padding:0; background:#f0f0f5; }
-.container { padding:20px; min-height:100vh; background-size:cover; background-position:center; transition: background 0.5s; }
+body { margin:0; font-family: Arial,sans-serif; background:#f0f0f5; }
+.container { padding:20px; min-height:100vh; background-size:cover; background-position:center; transition: background 0.5s; text-align:center; }
 .hidden { display:none; }
 button { margin:5px; padding:10px 20px; font-size:16px; cursor:pointer; border:none; border-radius:5px; transition: transform 0.2s; }
 button:hover { transform: scale(1.05); }
 input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-radius:5px; border:1px solid #ccc; }
-.list-item { background:#fff; margin:10px 0; padding:15px; border-radius:10px; display:flex; align-items:center; justify-content:space-between; cursor:grab; transition: background 0.3s;}
-.list-item:hover { background:#e0f7ff; }
 
-/* Flashcard 3D */
-.flashcard { width:300px; height:150px; perspective:1000px; margin:auto; margin-top:20px; cursor:pointer; }
+/* Flashcards 3D */
+.flashcard { width:300px; height:150px; perspective:1000px; margin:auto; margin-top:40px; cursor:pointer; position:relative; }
 .flashcard-inner { width:100%; height:100%; position:relative; transition: transform 0.8s; transform-style: preserve-3d; }
 .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
 .flashcard .front, .flashcard .back {
-  position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; font-size:18px; border-radius:10px; color:#fff; font-weight:bold;
+  position:absolute; width:100%; height:100%; backface-visibility:hidden; display:flex; align-items:center; justify-content:center; font-size:20px; border-radius:10px; color:#fff; font-weight:bold;
 }
 .flashcard .back { transform: rotateY(180deg); }
 
-/* Flashcards couleurs par matière */
+/* Couleurs matières */
 .flash-Math { background:#4CAF50; }
 .flash-Francais { background:#2196F3; }
 .flash-Histoire { background:#FF9800; }
 .flash-Sciences { background:#9C27B0; }
 .flash-Geographie { background:#F44336; }
 
-/* Option buttons */
-.option-buttons { display:flex; justify-content:space-between; margin-top:10px; }
+/* Boutons Bien/Mal */
+.option-buttons { display:flex; justify-content:space-between; margin-top:20px; max-width:300px; margin-left:auto; margin-right:auto; }
 .option-buttons button { flex:1; margin:5px; font-weight:bold; }
-.option-buttons button.good { background:#4CAF50; color:white; }
-.option-buttons button.bad { background:#F44336; color:white; }
+.option-buttons .good { background:#4CAF50; color:white; }
+.option-buttons .bad { background:#F44336; color:white; }
 
 /* Quiz options */
 .quiz-option { margin:5px 0; padding:8px; border-radius:5px; cursor:pointer; transition: all 0.3s; }
@@ -46,13 +44,19 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 
 /* To-do List */
 #new-task { width:70%; margin-right:10px; }
+.list-item { background:#fff; margin:10px 0; padding:15px; border-radius:10px; display:flex; align-items:center; justify-content:space-between; cursor:grab; transition: background 0.3s;}
+.list-item:hover { background:#e0f7ff; }
+
+/* Félicitations fullscreen */
+#congrats { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:1000; }
+#congrats img { width:100%; height:100%; object-fit:cover; }
 </style>
 </head>
 <body>
 
 <!-- Interface principale -->
-<div class="container" id="main-interface" style="background-image:url('https://source.unsplash.com/800x600/?study');">
-<h1>Aide Devoir Stylé</h1>
+<div class="container" id="main-interface" style="background-image:url('https://source.unsplash.com/1600x900/?study');">
+<h1>Aide Devoir</h1>
 <button onclick="showInterface('quiz')">Quiz</button>
 <button onclick="showInterface('flashcards')">Flashcards</button>
 <button onclick="showInterface('timer')">Minuteur</button>
@@ -60,7 +64,7 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 </div>
 
 <!-- Quiz Interface -->
-<div class="container hidden" id="quiz-interface" style="background-image:url('https://source.unsplash.com/800x600/?notebook');">
+<div class="container hidden" id="quiz-interface" style="background-image:url('https://source.unsplash.com/1600x900/?notebook');">
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Choisis une matière</h2>
 <div id="quiz-subjects"></div>
@@ -72,19 +76,15 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 </div>
 
 <!-- Flashcards Interface -->
-<div class="container hidden" id="flashcards-interface" style="background-image:url('https://source.unsplash.com/800x600/?cards');">
+<div class="container hidden" id="flashcards-interface" style="background-image:url('https://source.unsplash.com/1600x900/?cards');">
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Choisis une matière</h2>
 <div id="flashcard-subjects"></div>
-<div id="flashcard-actions" class="hidden">
-<button onclick="createNewFlashcard()">Créer un nouveau set</button>
-<div id="existing-flashcards"></div>
-</div>
-<div id="flashcard-play" class="hidden"></div>
+<div id="flashcard-play"></div>
 </div>
 
 <!-- Timer Interface -->
-<div class="container hidden" id="timer-interface" style="background-image:url('https://source.unsplash.com/800x600/?clock');">
+<div class="container hidden" id="timer-interface" style="background-image:url('https://source.unsplash.com/1600x900/?clock');">
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Minuteur Pomodoro</h2>
 <input type="number" id="timer-minutes" placeholder="Minutes" value="25">
@@ -94,7 +94,7 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 </div>
 
 <!-- To-do List Interface -->
-<div class="container hidden" id="todolist-interface" style="background-image:url('https://source.unsplash.com/800x600/?notes');">
+<div class="container hidden" id="todolist-interface" style="background-image:url('https://source.unsplash.com/1600x900/?notes');">
 <button onclick="showInterface('main')">← Principal</button>
 <h2>Liste de tâches</h2>
 <input type="text" id="new-task" placeholder="Nouvelle tâche">
@@ -103,8 +103,8 @@ input[type="text"], input[type="number"] { padding:5px; font-size:16px; border-r
 </div>
 
 <!-- Fenêtre Félicitations -->
-<div id="congrats" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;z-index:1000;">
-    <img src="https://bradaronson.com/wp-content/uploads/2013/10/happy.jpg" alt="Félicitations !" style="max-width:80%;max-height:80%;border-radius:15px;">
+<div id="congrats">
+    <img src="https://bradaronson.com/wp-content/uploads/2013/10/happy.jpg" alt="Félicitations !">
 </div>
 
 <script>
@@ -160,34 +160,83 @@ let tasks = JSON.parse(localStorage.getItem('tasks')||'[]'); tasks.splice(i,1);
 localStorage.setItem('tasks',JSON.stringify(tasks)); loadTasks();
 }
 
-// --- Subjects ---
-let subjects = ['Math','Francais','Histoire','Sciences','Geographie'];
-let currentQuizSubject='', currentFlashSubject='';
-function loadSubjects(){ 
-let qs=document.getElementById('quiz-subjects'); let fs=document.getElementById('flashcard-subjects'); 
-qs.innerHTML=''; fs.innerHTML='';
-subjects.forEach(s=>{
-let b1=document.createElement('button'); b1.textContent=s; b1.onclick=()=>selectQuizSubject(s); qs.appendChild(b1);
-let b2=document.createElement('button'); b2.textContent=s; b2.onclick=()=>selectFlashcardSubject(s); fs.appendChild(b2);
-});
-}
-
 // --- Félicitations ---
 function showCongrats(){
     const congrats = document.getElementById('congrats');
     congrats.style.display = 'flex';
-    setTimeout(()=>{ congrats.style.display = 'none'; }, 10000);
+    setTimeout(()=>{ congrats.style.display = 'none'; },10000);
 }
 
-// --- Quiz ---
-let currentQuiz=[], quizErrors=[];
-function selectQuizSubject(subject){currentQuizSubject=subject; document.getElementById('quiz-actions').classList.remove('hidden'); renderExistingQuizzes();}
-function renderExistingQuizzes(){let div=document.getElementById('existing-quizzes'); div.innerHTML=''; let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.forEach((q,i)=>{let d=document.createElement('div'); d.className='list-item'; d.innerHTML=`<span>${q.title}</span><button onclick="playQuiz(${i})">Jouer</button><button onclick="editQuiz(${i})">Modifier</button><button onclick="deleteQuiz(${i})">Effacer</button>`; div.appendChild(d);});}
-function createNewQuiz(){let title=prompt('Titre du quiz:'); if(!title) return; let quizzes = JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.push({title,questions:[]}); localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); editQuiz(quizzes.length-1);}
-function editQuiz(index){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); let qz=quizzes[index]; while(true){ let question=prompt('Écris ta question (ou annuler pour finir):'); if(!question) break; let nb=parseInt(prompt('Nombre de choix (2-4)'))||2; let options=[]; for(let i=0;i<nb;i++){ let opt=prompt('Option '+(i+1)); options.push(opt||''); } let correct=parseInt(prompt('Numéro de la bonne réponse (1-'+nb+')'))-1; qz.questions.push({question,options,correct}); } quizzes[index]=qz; localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();}
-function deleteQuiz(i){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); quizzes.splice(i,1); localStorage.setItem('quiz-'+currentQuizSubject,JSON.stringify(quizzes)); renderExistingQuizzes();}
-function playQuiz(index, onlyErrors=false){let quizzes=JSON.parse(localStorage.getItem('quiz-'+currentQuizSubject)||'[]'); currentQuiz=JSON.parse(JSON.stringify(quizzes[index].questions)); if(onlyErrors && quizErrors.length>0){currentQuiz=quizErrors;} quizErrors=[]; let container=document.getElementById('quiz-play'); container.classList.remove('hidden'); container.innerHTML=''; let score=0, qIndex=0; function showQuestion(){ if(qIndex>=currentQuiz.length){ if(score===currentQuiz.length) showCongrats(); container.innerHTML=`Quiz terminé! Score: ${score}/${currentQuiz.length} <br>${quizErrors.length>0?'<button onclick="playQuiz('+index+',true)">Recommencer erreurs</button>':''}<button onclick="playQuiz(${index})">Recommencer</button><button onclick="showInterface('main')">Principal</button>`; return; } let q=currentQuiz[qIndex]; container.innerHTML=`<div>${q.question}</div>`; q.options.forEach((o,i)=>{ let btn=document.createElement('button'); btn.className='quiz-option'; btn.textContent=o; btn.onclick=function(){ if(i===q.correct){ btn.classList.add('correct'); score++; } else { btn.classList.add('wrong'); quizErrors.push(q); } setTimeout(()=>{qIndex++; showQuestion();},800); }; container.appendChild(btn);});} showQuestion();}
-loadSubjects();
+// --- Flashcards ---
+let flashSubjects = ['Math','Francais','Histoire','Sciences','Geographie'];
+let flashcardsData = {
+'Math': [{q:'2+2?', a:'4'}, {q:'5x3?', a:'15'}],
+'Francais': [{q:'Synonyme rapide?', a:'vite'}, {q:'Antonyme froid?', a:'chaud'}],
+'Histoire': [{q:'Découverte Amérique?', a:'1492'}, {q:'Révolution française?', a:'1789'}],
+'Sciences': [{q:'Eau à 100°C?', a:'vapeur'}, {q:'Planète rouge?', a:'Mars'}],
+'Geographie': [{q:'Capitale France?', a:'Paris'}, {q:'Plus grand océan?', a:'Pacifique'}]
+};
+let currentFlashSubject = '';
+let currentCards = [], cardIndex=0, correctCount=0;
+
+let flashDiv = document.getElementById('flashcard-subjects');
+flashSubjects.forEach(sub=>{
+let btn=document.createElement('button'); btn.textContent=sub; btn.onclick=()=>{ selectFlash(sub); }; flashDiv.appendChild(btn);
+});
+
+function selectFlash(sub){
+currentFlashSubject=sub;
+currentCards=JSON.parse(JSON.stringify(flashcardsData[sub]));
+cardIndex=0; correctCount=0;
+showFlashCard();
+}
+
+function showFlashCard(){
+let container=document.getElementById('flashcard-play'); container.innerHTML='';
+if(cardIndex>=currentCards.length){
+container.innerHTML=`<h2>Score: ${correctCount}/${currentCards.length}</h2>`;
+if(correctCount===currentCards.length) showCongrats();
+return;
+}
+let data=currentCards[cardIndex];
+let cardDiv=document.createElement('div'); cardDiv.className='flashcard flash-'+currentFlashSubject;
+let inner=document.createElement('div'); inner.className='flashcard-inner';
+let front=document.createElement('div'); front.className='front'; front.textContent=data.q;
+let back=document.createElement('div'); back.className='back'; back.textContent=data.a;
+inner.appendChild(front); inner.appendChild(back); cardDiv.appendChild(inner);
+cardDiv.onclick=()=>{ cardDiv.classList.toggle('flipped'); };
+container.appendChild(cardDiv);
+
+let btnDiv=document.createElement('div'); btnDiv.className='option-buttons';
+let goodBtn=document.createElement('button'); goodBtn.textContent='Bien'; goodBtn.className='good';
+goodBtn.onclick=(e)=>{ e.stopPropagation(); correctCount++; cardIndex++; showFlashCard(); };
+let badBtn=document.createElement('button'); badBtn.textContent='Mal'; badBtn.className='bad';
+badBtn.onclick=(e)=>{ e.stopPropagation(); cardIndex++; showFlashCard(); };
+btnDiv.appendChild(badBtn); btnDiv.appendChild(goodBtn);
+container.appendChild(btnDiv);
+}
+
+// --- Quiz simple exemple (tu peux remplacer par ton code complet quiz) ---
+let quizSubjects = ['Math','Francais','Histoire','Sciences','Geographie'];
+let quizData = {
+'Math': [{q:'2+2?', options:['3','4','5'], correct:1}],
+'Francais': [{q:'Synonyme rapide?', options:['vite','lent','rapide'], correct:0}],
+'Histoire': [{q:'Découverte Amérique?', options:['1492','1500','1600'], correct:0}],
+'Sciences': [{q:'Eau à 100°C?', options:['vapeur','glace','liquide'], correct:0}],
+'Geographie': [{q:'Capitale France?', options:['Lyon','Paris','Marseille'], correct:1}]
+};
+
+let quizDiv=document.getElementById('quiz-subjects');
+quizSubjects.forEach(sub=>{ let btn=document.createElement('button'); btn.textContent=sub; btn.onclick=()=>{ playQuiz(sub); }; quizDiv.appendChild(btn); });
+
+function playQuiz(sub){
+let questions=quizData[sub]; let container=document.getElementById('quiz-play'); container.classList.remove('hidden'); container.innerHTML=''; let score=0; let qIndex=0;
+function showQuestion(){ if(qIndex>=questions.length){ container.innerHTML=`<h2>Score: ${score}/${questions.length}</h2>`; if(score===questions.length) showCongrats(); return;}
+let q=questions[qIndex]; container.innerHTML=`<div>${q.q}</div>`; q.options.forEach((o,i)=>{ let b=document.createElement('button'); b.textContent=o; b.className='quiz-option'; b.onclick=function(){ if(i===q.correct){ b.classList.add('correct'); score++; } else b.classList.add('wrong'); setTimeout(()=>{ qIndex++; showQuestion(); },800); }; container.appendChild(b);});}
+showQuestion();
+}
+
+// Charger les tâches To-do List au démarrage
 loadTasks();
 </script>
 
